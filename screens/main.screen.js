@@ -1,23 +1,88 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ImageBackground } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useNavigation, StackActions } from '@react-navigation/native'; // Import useNavigation hook and StackActions
+import { createStackNavigator } from '@react-navigation/stack';
+import { useNavigation } from '@react-navigation/native';
 import { TextInput, Button, useTheme } from 'react-native-paper';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import HomeScreen from './home.screen';
 import MyFoodScreen from './account/food/my-food.screen';
 import BoxScreen from './account/donation/box.screen';
+import StoreScreen from './stores/store.screen';
 import MeScreen from './account/profile/me.screen';
 
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
 
-const MainScreen = () => {
-  const [cartCount, setCartCount] = useState(0);
-  const [searchModalVisible, setSearchModalVisible] = useState(false);
+const TabBarIcon = (props) => {
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 10 }}>
+      <MaterialCommunityIcons {...props} />
+    </View>
+  );
+};
+
+const SearchScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { colors } = useTheme();
+  const [loading, setLoading] = useState(false);
+
+  const handleSearch = () => {
+    console.log('Search for:', searchQuery);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (searchQuery) {
+      setLoading(true);
+      const timer = setTimeout(() => {
+        handleSearch();
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [searchQuery]);
+
+  const closeModal = () => {
+    navigation.goBack();
+  };
+
+return (
+  <ImageBackground source={require('https://img.freepik.com/premium-photo/platform-podium-with-natural-light-green-background-product-display-sustainability-concept_494516-2236.jpg')} style={styles.backgroundImage}>
+  {/* <BlurView intensity={100} style={styles.centeredView}> */}
+    <View style={styles.modalView}>
+      <TouchableOpacity onPress={closeModal} style={styles.backArrow}>
+        <MaterialCommunityIcons name="arrow-left" size={24} color="black" />
+      </TouchableOpacity>
+      <TextInput
+        mode="outlined"
+        label="Search"
+        placeholder="Type here..."
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        style={styles.textInput}
+        right={<TextInput.Icon name="magnify" onPress={handleSearch} />}
+        autoFocus
+      />
+      {loading && <ActivityIndicator size="large" color="green" />}
+      <Button
+        mode="contained"
+        icon="arrow-right"
+        onPress={handleSearch}
+        style={styles.button}
+      >
+        Find Stuffs
+      </Button>
+    </View>
+    {/* </BlurView> */}
+  </ImageBackground>
+  );
+};
+
+const HeaderIcons = () => {
+  const navigation = useNavigation();
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
     const fetchCartCount = async () => {
@@ -35,152 +100,160 @@ const MainScreen = () => {
     fetchCartCount();
   }, []);
 
-  const HeaderIcons = () => {
-    const navigation = useNavigation(); // Access the navigation object using useNavigation
-    const navigateToCart = () => {
-      navigation.navigate('Cart'); // Navigate to the 'CartScreen' stack screen
-    };
+  const navigateToCart = () => {
+    navigation.navigate('Cart');
+  };
 
-    //Remove this
-    const navigateToSearch = () => {
-      // Navigate to the search screen
-    };
-
-    const openSearchModal = () => {
-      setSearchModalVisible(true);
-    };
-
-    const handleSearch = () => {
-      console.log('Search for:', searchQuery);
-      // setSearchModalVisible(false); // Close the modal after search
-    };
-
-    return (
-      <View style={styles.headerIconsContainer}>
-
-          <TouchableOpacity onPress={openSearchModal} style={styles.headerIcon}>
-              <Ionicons name="search-outline" size={24} color="orange" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={navigateToCart} style={styles.headerIcon}>
-              <Ionicons name="cart-outline" size={24} color="green" />
-              {cartCount > 0 && <Text style={styles.cartCount}>{cartCount}</Text>}
-          </TouchableOpacity>k
-
-
-        <Modal
-          animationType="fade"
-          transparent={true}
-          visible={searchModalVisible}
-          onRequestClose={() => setSearchModalVisible(false)}>
-          <View style={styles.centeredView}>
-            <View style={styles.modalView}>
-              <TextInput
-                mode="outlined"
-                label="Search"
-                placeholder="Type here..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                style={styles.textInput}
-                right={<TextInput.Icon name="magnify" onPress={handleSearch} />}
-                autoFocus
-              />
-              <Button
-                mode="contained"
-                icon="arrow-right"
-                onPress={handleSearch}
-                style={styles.button}
-              >Find Stuffs
-              </Button>
-            </View>
-          </View>
-        </Modal>
-
-      </View>
-    );
+  const navigateToSearch = () => {
+    navigation.navigate('Search');
   };
 
   return (
-    <View style={styles.container}>
-        <BlurView intensity={100} style={StyleSheet.absoluteFill}>
-            <Tab.Navigator
-              screenOptions={({ route }) => ({
-                tabBarActiveTintColor: 'white',
-                tabBarInactiveTintColor: 'gray',
-                tabBarStyle: {
-                  backgroundColor: '#71BD39',
-                  borderTopWidth: 0,
-                  elevation: 0,
-                },
-                headerRight: () => <HeaderIcons />,
-              })}
-            >
-
-                <Tab.Screen
-                  name="Eatapp"
-                  component={HomeScreen}
-                  options={{
-                    tabBarIcon: ({ color, size }) => (
-                      <Ionicons name="home" color={color} size={size} />
-                    ),
-                  }}
-                />
-
-                <Tab.Screen
-                  name="My Food"
-                  component={MyFoodScreen}
-                  options={{
-                    tabBarIcon: ({ color, size }) => (
-                      <Ionicons name="fast-food-outline" color={color} size={size} />
-                    ),
-                  }}
-                />
-
-                <Tab.Screen
-                  name="Donate"
-                  component={BoxScreen}
-                  options={{
-                    tabBarIcon: ({ color, size }) => (
-                      <Ionicons name="gift-outline" color={color} size={size} />
-                    ),
-                  }}
-                />
-
-                {/* <Tab.Screen
-                  name="Cart"
-                  component={CartScreen}
-                  options={{
-                    tabBarIcon: ({ color, size }) => (
-                      <Ionicons name="cart-outline" color={color} size={size} />
-                    ),
-                  }}
-                /> */}
-
-                <Tab.Screen
-                  name="You"
-                  component={MeScreen}
-                  options={{
-                    tabBarIcon: ({ color, size }) => (
-                      <Ionicons name="person-outline" color={color} size={size} />
-                    ),
-                  }}
-                />
-
-            </Tab.Navigator>
-        </BlurView>
+    <View style={styles.headerIconsContainer}>
+      <TouchableOpacity onPress={navigateToSearch} style={styles.headerIcon}>
+        <MaterialCommunityIcons name="magnify" size={30} color="orange" />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={navigateToCart} style={styles.headerIcon}>
+        <MaterialCommunityIcons name="cart-outline" size={30} color="green" />
+        {cartCount > 0 && <Text style={styles.cartCount}>{cartCount}</Text>}
+      </TouchableOpacity>
     </View>
+  );
+};
+
+const MainScreen = ({ navigation }) => {
+  return (
+    <View style={styles.container}>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          headerShown: true,
+          headerStyle: styles.header,
+          headerBackground: () => (
+            <BlurView intensity={50} style={StyleSheet.absoluteFill} />
+          ),
+          headerRight: () => <HeaderIcons />,
+          tabBarIcon: ({ focused, color, size }) => {
+            let iconName;
+            if (route.name === 'Eatapp') {
+              iconName = focused ? 'home' : 'home-outline';
+            } else if (route.name === 'My Food') {
+              iconName = focused ? 'food' : 'food-outline';
+            } else if (route.name === 'Donate') {
+              iconName = focused ? 'gift' : 'gift-outline';
+            } else if (route.name === 'Store') {
+              iconName = focused ? 'store' : 'store-outline';
+            } else if (route.name === 'You') {
+              iconName = focused ? 'account' : 'account-outline';
+            }
+            return <TabBarIcon name={iconName} size={focused ? 26 : 22} color={color} />;
+          },
+          tabBarActiveTintColor: 'white',
+          tabBarInactiveTintColor: 'gray',
+          tabBarStyle: {
+            backgroundColor: 'rgba(113, 189, 57, 0.7)', // Semi-transparent background
+            borderTopWidth: 0,
+            height: 70,
+            borderRadius: 20,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 7 },
+            shadowOpacity: 0.3,
+            shadowRadius: 5,
+            elevation: 10,
+            position: 'absolute',
+            left: 8,
+            right: 8,
+            bottom: 8,
+            overflow: 'hidden',
+          },
+          tabBarLabelStyle: {
+            paddingBottom: 5,
+            fontSize: 14,
+          },
+          tabBarBackground: () => (
+            <BlurView intensity={50} style={StyleSheet.absoluteFill} />
+          ),
+        })}
+      >
+        <Tab.Screen
+          name="Eatapp"
+          component={HomeScreen}
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="home" color={color} size={size} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="My Food"
+          component={MyFoodScreen}
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="food" color={color} size={size} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Donate"
+          component={BoxScreen}
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="gift" color={color} size={size} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Store"
+          component={StoreScreen}
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="store" color={color} size={size} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="You"
+          component={MeScreen}
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="account" color={color} size={size} />
+            ),
+          }}
+        />
+      </Tab.Navigator>
+    </View>
+
+  );
+};
+
+const MainStackScreen = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Main" component={MainScreen} />
+      <Stack.Screen name="Search" component={SearchScreen} />
+    </Stack.Navigator>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  },
+  header: {
+    backgroundColor: 'rgba(113, 189, 57, 0.7)',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    height: 80,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 10,
+    overflow: 'hidden',
   },
   headerIconsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 10,
-    paddingTop: 50, // adjust according to your status bar + header height
+    paddingTop: 10,
   },
   headerIcon: {
     backgroundColor: 'white',
@@ -191,12 +264,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 1, height: 1 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
+    marginHorizontal: 3,
   },
   centeredView: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalView: {
     margin: 20,
@@ -220,7 +294,7 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     paddingVertical: 8,
-    backgroundColor:'green',
+    backgroundColor: 'green',
   },
   cartCount: {
     position: 'absolute',
@@ -233,7 +307,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: 'white',
     fontSize: 12,
-    // Shadow properties
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -245,4 +318,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default MainScreen;
+export default MainStackScreen;

@@ -39,7 +39,8 @@ const App = () => {
       });
 
       // If the request is successful, update the authenticated state based on the response
-      setAuthenticated(response.data.status);
+      setAuthenticated(true);
+      // setAuthenticated(response.data.status);
     } catch (error) {
       console.error('Authentication check failed:', error);
       setAuthenticated(false);
