@@ -1,102 +1,79 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { View, Image, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
 
-const ChevronLeftIcon = () => (
-  <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <Path d="M15 18l-6-6 6-6" />
-  </Svg>
-);
-
-const ChevronRightIcon = () => (
-  <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <Path d="M9 18l6-6-6-6" />
-  </Svg>
-);
-
-const RegisterByOTPScreen = ({ navigation }) => {
+const RegisterByOTPScreen = () => {
   const [step, setStep] = useState(1);
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [otp, setOtp] = useState('');
+  const [otp, setOTP] = useState('');
   const [name, setName] = useState('');
 
   const handleNext = () => {
     setStep(step + 1);
   };
 
-  const handlePrevious = () => {
-    setStep(step - 1);
-  };
-
-  const handleRegister = () => {
-    // Perform registration logic based on the current step
-    if (step === 1) {
-      // For Step 1 (Phone Number), move to Step 2
-      handleNext();
-    } else if (step === 2) {
-      // For Step 2 (OTP), move to Step 3 or perform additional validation
-      // In this example, move to Step 3 directly
-      handleNext();
-    } else if (step === 3) {
-      // For Step 3 (Name), perform final registration logic
-      // Redirect to the next screen upon successful registration
-
-      // For simplicity, let's assume registration is successful
-      navigation.navigate('Home');
+  const renderStepContent = () => {
+    switch (step) {
+      case 1:
+        return (
+          <View>
+            <Text style={styles.title}>Phone Number</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="097 -- -- ---"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+            />
+          </View>
+        );
+      case 2:
+        return (
+          <View>
+            <Text style={styles.title}>Enter OTP</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="X X X X X"
+              value={otp}
+              onChangeText={setOTP}
+            />
+          </View>
+        );
+      case 3:
+        return (
+          <View>
+            <Text style={styles.title}>Whats your name?</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Full names"
+              value={name}
+              onChangeText={setName}
+            />
+          </View>
+        );
+      default:
+        return null;
     }
   };
 
   return (
     <View style={styles.container}>
-      {step === 1 && (
-        <>
-          <Text style={styles.title}>Step 1: Enter Phone Number</Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Phone Number"
-            onChangeText={(text) => setPhoneNumber(text)}
-            keyboardType="phone-pad"
-          />
-        </>
-      )}
-
-      {step === 2 && (
-        <>
-          <Text style={styles.title}>Step 2: Enter OTP</Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="OTP"
-            onChangeText={(text) => setOtp(text)}
-            keyboardType="numeric"
-          />
-        </>
-      )}
-
-      {step === 3 && (
-        <>
-          <Text style={styles.title}>Step 3: Enter Name</Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Name"
-            onChangeText={(text) => setName(text)}
-          />
-        </>
-      )}
-
-      <View style={styles.buttonContainer}>
-        {step > 1 && (
-          <TouchableOpacity onPress={handlePrevious} style={styles.button}>
-            <ChevronLeftIcon />
-          </TouchableOpacity>
+      <View style={styles.steps}>
+        {step >= 1 && (
+          <Image source={require('../../assets/img/1.jpg')} style={styles.stepImage}/>
         )}
-
-        <TouchableOpacity onPress={handleRegister} style={styles.button}>
-          {step < 3 ? <ChevronRightIcon /> : <Text>Register</Text>}
-        </TouchableOpacity>
+        {/* {step >= 2 && (
+          <Image source={require('../../assets/img/1.jpg')} style={styles.stepImage}/>
+        )}
+        {step >= 3 && (
+          <Image source={require('../../assets/img/1.jpg')} style={styles.stepImage}/>
+        )} */}
       </View>
+
+      
+      {renderStepContent()}
+      <TouchableOpacity style={styles.button} onPress={handleNext}>
+        <Text style={styles.buttonText}>{step >= 3 ? 'Finish' : 'Next'}</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -104,34 +81,43 @@ const RegisterByOTPScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 20,
+  },
+  steps: {
+    flexDirection: 'row',
+    marginBottom: 20,
+  },
+  stepImage: {
+    width: 300,
+    height: 300,
+    marginRight: 10,
   },
   title: {
-    fontSize: 24,
-    marginBottom: 16,
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 20,
   },
   input: {
-    height: 40,
-    width: '100%',
-    borderColor: 'gray',
     borderWidth: 1,
-    marginBottom: 16,
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'white', // Add a background color
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    borderColor: 'gray',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 20,
     width: '100%',
-    marginTop: 16,
   },
   button: {
-    backgroundColor: '#007AFF', // Add a background color for buttons
-    padding: 10,
-    borderRadius: 8,
+    backgroundColor: 'blue',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 5,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

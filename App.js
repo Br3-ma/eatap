@@ -62,12 +62,12 @@ const App = () => {
   const checkAuthentication = async () => {
     try {
       // Make an API request to check if the user is authenticated
-      const response = await axios.get('YOUR_LARAVEL_API_URL/api/user', {
-        withCredentials: true, // Include credentials (cookies) in the request
-      });
+      // const response = await axios.get('YOUR_LARAVEL_API_URL/api/user', {
+      //   withCredentials: true, // Include credentials (cookies) in the request
+      // });
 
       // If the request is successful, set the authenticated state to true
-      setAuthenticated(true);
+      setAuthenticated(false);
     } catch (error) {
       // If there's an error (e.g., user not authenticated), set the authenticated state to false
       setAuthenticated(false);
