@@ -5,7 +5,7 @@ import axios from 'axios';
 
 const backgroundImage = require('../../assets/img/otp.jpg');
 
-const RegisterByOTPScreen = () => {
+const RegisterByOTPScreen = ({ navigation }) => { // Pass the navigation prop
   const [step, setStep] = useState(1);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOTP] = useState('');
@@ -14,40 +14,38 @@ const RegisterByOTPScreen = () => {
   const handleNext = async () => {
     switch (step) {
       case 1:
-        // POST request to backend endpoint to submit phone number
-        try {
-          // const response = await axios.post('YOUR_LARAVEL_API_URL/api/submit-phone-number', {
-          //   phoneNumber: phoneNumber,
-          // });
-          // console.log(response.data); 
-           setStep(step + 1);
-        } catch (error) {
-          console.error(error); // Handle error
-        }
+          // POST request to backend endpoint to submit phone number
+          try {
+            // const response = await axios.post('http://localhost:8000/api/signup/request-otp', {
+            //   phoneNumber: phoneNumber,
+            // });
+            setStep(step + 1);
+          } catch (error) {
+            console.error(error); 
+          }
         break;
       case 2:
-        // POST request to backend endpoint to submit OTP
-        try {
-          // const response = await axios.post('YOUR_LARAVEL_API_URL/api/submit-otp', {
-          //   otp: otp,
-          // });
-          // console.log(response.data); // Handle response
-          setStep(step + 1);
-        } catch (error) {
-          console.error(error); // Handle error
-        }
+          // POST request to backend endpoint to submit OTP
+          try {
+            // const response = await axios.post('http://localhost:8000/api/signup/verify-otp', {
+            //   otp: otp,
+            // });
+            setStep(step + 1);
+          } catch (error) {
+            console.error(error); 
+          }
         break;
       case 3:
-        // POST request to backend endpoint to submit full name
-        try {
-          // const response = await axios.post('YOUR_LARAVEL_API_URL/api/submit-full-name', {
-          //   name: name,
-          // });
-          // console.log(response.data); // Handle response
-          // Store response in SQLite storage
-        } catch (error) {
-          console.error(error); // Handle error
-        }
+          // POST request to backend endpoint to submit fullname
+          try {
+            // const response = await axios.post('http://localhost:8000/api/signup/user-info', {
+            //   fullname: name,
+            // });
+            //Goto Overview
+            navigation.navigate('Overview');
+          } catch (error) {
+            console.error(error); 
+          }
         break;
       default:
         break;

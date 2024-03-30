@@ -1,25 +1,12 @@
-// SplashScreen.js
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 
-const SplashScreen = ({ navigation }) => {
-    // useEffect(() => {
-    //     // Simulate a delay, then navigate to the landing screen
-    //     const timer = setTimeout(() => {
-    //         navigation.replace('Landing');
-    //     }, 2000); // Adjust the delay as needed
-
-    //     return () => clearTimeout(timer); // Clean up the timer
-    // }, [navigation]);
-
+const SplashScreen = () => {
     return (
         <View style={styles.container}>
-            <Image
-                source={require('../assets/animation/2.gif')}
-                style={styles.logo}
-            />
+            <Image source={require('../assets/animation/2.gif')} style={styles.logo}/>
             <Text style={styles.text}>EatApp</Text>
-            <Text style={styles.text2}>Loading...</Text>
+            <Text style={styles.text2}>Pick up . Eat up</Text>
         </View>
     );
 };
@@ -49,5 +36,4 @@ const styles = StyleSheet.create({
         color:'#8eba30'
     }
 });
-
 export default SplashScreen;

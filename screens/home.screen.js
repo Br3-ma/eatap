@@ -16,15 +16,14 @@ const HomeScreen = ({ navigation }) => {
     // Fetch products from your API or use dummy data
     // Replace this with your actual data fetching logic
     const dummyData = [
-      { id: '1', name: 'Pizza', price: 10, image: require('../assets/pizza.jpg') },
-      { id: '2', name: 'Burger', price: 80, image: require('../assets/burger.png') },
-      { id: '2', name: 'Burger', price: 98, image: require('../assets/burger.png') },
-      { id: '2', name: 'Burger', price: 80, image: require('../assets/burger.png') },
-      { id: '2', name: 'Burger', price: 78, image: require('../assets/burger.png') },
-      { id: '2', name: 'Burger', price: 28, image: require('../assets/burger.png') },
-      { id: '2', name: 'Burger', price: 83, image: require('../assets/burger.png') },
-      { id: '2', name: 'Burger', price: 28, image: require('../assets/burger.png') },
-      { id: '2', name: 'Burger', price: 18, image: require('../assets/burger.png') },
+      { id: '1', name: 'Mediaum Pizza', price: 10, image: require('../assets/pizza.jpg') },
+      { id: '2', name: 'Cheese Burger', price: 80, image: require('../assets/burger.png') },
+      { id: '3', name: 'Meat Burger', price: 98, image: require('../assets/burger.png') },
+      { id: '4', name: 'Chicken Burger', price: 80, image: require('../assets/burger.png') },
+      { id: '5', name: 'Burger', price: 78, image: require('../assets/burger.png') },
+      { id: '6', name: 'Burger', price: 28, image: require('../assets/burger.png') },
+      { id: '7', name: 'Burger', price: 83, image: require('../assets/burger.png') },
+      { id: '8', name: 'Burger', price: 28, image: require('../assets/burger.png') },
       // Add more products as needed
     ];
 
@@ -59,12 +58,12 @@ const HomeScreen = ({ navigation }) => {
   return (
     <ScrollView style={styles.scrollContainer}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesContainer}>
-        {categories.map((category, index) => (
-          <TouchableOpacity key={index} style={styles.categoryTab}>
-            <Image source={category.image} style={styles.categoryImage} />
-            <Text>{category.name}</Text>
-          </TouchableOpacity>
-        ))}
+      {categories.map((category, index) => (
+        <TouchableOpacity key={index} style={styles.categoryTab}>
+          <Image source={category.image} style={styles.categoryImage} />
+          <Text>{category.name}</Text>
+        </TouchableOpacity>
+      ))}
       </ScrollView>
 
       {/* Add a hero banner ad here */}
@@ -76,17 +75,17 @@ const HomeScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.headerText1}> Most Popular </Text>
-
-      <FlatList
-      
-        data={products}
-        numColumns={2} // Set the number of columns for the grid view
-        renderItem={renderProductItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.productList}
-        showsVerticalScrollIndicator={false}
-      />
+      <View style={styles.mostPop}>
+        <Text style={styles.headerText1}> Most Popular </Text>
+        <FlatList
+          data={products}
+          numColumns={2} // Set the number of columns for the grid view
+          renderItem={renderProductItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.productList}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
     </ScrollView>
   );
 };
@@ -123,19 +122,19 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     flex: 1,
     margin: 4,
-    padding: 5,
+    padding: 4,
     shadowColor: '#00000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowOpacity: 0.5,
+    shadowRadius: 5,
     elevation: 2, // For Android
     backgroundColor: '#fff', // Set a background color to see the shadow
     borderRadius: 3, // Add border radius for a card-like appearance
   },
   productImage: {
-    width: 160,
-    height: 160,
-    // borderRadius: 100,
+    width: 140,
+    height: 140,
+    borderRadius: 5,
     marginBottom: 8,
   },
   productName: {
@@ -148,6 +147,10 @@ const styles = StyleSheet.create({
     color: 'green',
   },
 
+  mostPop:{
+    borderRadius: 10,
+    backgroundColor: 'white',
+  },
   // Hero banner
   heroBanner: {
     marginTop: 0,
@@ -190,9 +193,11 @@ const styles = StyleSheet.create({
   headerText1: {
     position: 'relative',
     top: 20,
-    left: 2,
-    color: '#000000ff',
-    fontSize: 16,
+    left: 10,
+    fontSize: 18,
+    marginBottom: 10,
+    marginHorizontal:20,
+    color: 'green',
     fontWeight: 'bold',
   },
 });

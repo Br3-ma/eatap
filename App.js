@@ -3,22 +3,22 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
+import { StyleSheet } from 'react-native';
 import './styles/tailwind.css';
 import axios from 'axios';
 
 // Auth
 import RegisterByOTPScreen from './screens/auth/otp-register.screen';
-// General
+import OverviewScreen from './screens/onboarding/overview.screen';
+import ContactsPermissions from './screens/onboarding/permissions.screen';
+
+// Main App
 import SplashScreen from './screens/splash.screen';
-import HomeScreen from './screens/home.screen';
+import MainScreen from './screens/main.screen';
 
-// Products
+//Main Navigations
 import ProductDetailsScreen from './screens/products/product-detail.screen';
-
-// Profile
 import MeScreen from './screens/account/profile/me.screen';
-
-// Donation
 import BoxScreen from './screens/account/donation/box.screen';
 
 // Icons
@@ -31,7 +31,7 @@ const Tab = createBottomTabNavigator();
 // Home Stack
 const HomeStack = () => (
   <Stack.Navigator initialRouteName="Home" headerMode="none">
-    <Stack.Screen name="Home" component={HomeScreen} />
+    <Stack.Screen name="Home" component={MainScreen} />
     <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
   </Stack.Navigator>
 );
@@ -54,21 +54,23 @@ const App = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
+      // Display splash screen for 3 seconds
       setShowSplashScreen(false);
-    }, 3000); // Display splash screen for 3 seconds
-
+    }, 3000); 
     return () => clearTimeout(timer);
   }, []);
 
   const checkAuthentication = async () => {
     try {
       // Make an API request to check if the user is authenticated
-      // const response = await axios.get('YOUR_LARAVEL_API_URL/api/user', {
-      //   withCredentials: true, // Include credentials (cookies) in the request
-      // });
-
+      const response = await axios.post('http://localhost:8000/api/connectx', {
+        withCredentials: false, // Include credentials (cookies) in the request
+        phone: '0772147755', //use token & sqlite_db in the future
+      });
+      // console.log(response.data.status);
       // If the request is successful, set the authenticated state to true
-      setAuthenticated(false);
+      setAuthenticated(response.data.status);
+      // setAuthenticated(false);
     } catch (error) {
       // If there's an error (e.g., user not authenticated), set the authenticated state to false
       setAuthenticated(false);
@@ -85,47 +87,27 @@ const App = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer style={styles.container}>
       {authenticated ? (
         // If authenticated, render the Tab Navigator with Home, Box, and Me stacks
-        <Tab.Navigator>
-          <Tab.Screen
-            name="Home"
-            component={HomeStack}
-            options={{
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="home" color={color} size={size} />
-              ),
-            }}
-          />
-          <Tab.Screen
-            name="Box"
-            component={BoxStack}
-            options={{
-              tabBarIcon: ({ color, size }) => (
-                <MaterialCommunityIcons name="package" color={color} size={size} />
-              ),
-            }}
-          />
-          <Tab.Screen
-            name="Me"
-            component={MeStack}
-            options={{
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="person" color={color} size={size} />
-              ),
-            }}
-          />
-        </Tab.Navigator>
+      <Stack.Navigator initialRouteName="Main" headerMode="none">
+        <Stack.Screen name="Main" component={MainScreen} />
+      </Stack.Navigator>
       ) : (
         // If not authenticated, render the Register by OTP stack
         <Stack.Navigator initialRouteName="RegisterByOTP" headerMode="none">
           <Stack.Screen name="RegisterByOTP" component={RegisterByOTPScreen} />
-          {/* Add other authentication screens/components here */}
+          <Stack.Screen name="Main" component={MainScreen} />
+          <Stack.Screen name="Overview" component={OverviewScreen} />
+          <Stack.Screen name="ContactsPermissions" component={ContactsPermissions} />
         </Stack.Navigator>
       )}
     </NavigationContainer>
   );
 };
-
+const styles = StyleSheet.create({
+  container:{
+    marginHorizontal:10,
+  }
+});
 export default App;
