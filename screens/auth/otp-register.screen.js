@@ -16,9 +16,9 @@ const RegisterByOTPScreen = ({ navigation }) => { // Pass the navigation prop
       case 1:
           // POST request to backend endpoint to submit phone number
           try {
-            // const response = await axios.post('http://localhost:8000/api/signup/request-otp', {
-            //   phoneNumber: phoneNumber,
-            // });
+            const response = await axios.post('http://localhost:8000/api/signup/request-otp', {
+              phoneNumber: phoneNumber,
+            });
             setStep(step + 1);
           } catch (error) {
             console.error(error); 
@@ -27,9 +27,9 @@ const RegisterByOTPScreen = ({ navigation }) => { // Pass the navigation prop
       case 2:
           // POST request to backend endpoint to submit OTP
           try {
-            // const response = await axios.post('http://localhost:8000/api/signup/verify-otp', {
-            //   otp: otp,
-            // });
+            const response = await axios.post('http://localhost:8000/api/signup/verify-otp', {
+              otp: otp,
+            });
             setStep(step + 1);
           } catch (error) {
             console.error(error); 
@@ -38,9 +38,10 @@ const RegisterByOTPScreen = ({ navigation }) => { // Pass the navigation prop
       case 3:
           // POST request to backend endpoint to submit fullname
           try {
-            // const response = await axios.post('http://localhost:8000/api/signup/user-info', {
-            //   fullname: name,
-            // });
+            const response = await axios.post('http://localhost:8000/api/signup/user-info', {
+              fullname: name,
+              phoneNumber: phoneNumber,
+            });
             //Goto Overview
             navigation.navigate('Overview');
           } catch (error) {

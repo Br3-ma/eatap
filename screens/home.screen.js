@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ScrollView } from 'react-native';
+import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
+import axios from 'axios';
 // ------ Icons ----------
 import { FontAwesome } from '@expo/vector-icons'; // Import FontAwesome icons
 import { Octicons } from '@expo/vector-icons'; 
@@ -11,23 +13,22 @@ import { Entypo } from '@expo/vector-icons';
 
 const HomeScreen = ({ navigation }) => {
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch products from your API or use dummy data
-    // Replace this with your actual data fetching logic
-    const dummyData = [
-      { id: '1', name: 'Mediaum Pizza', price: 10, image: require('../assets/pizza.jpg') },
-      { id: '2', name: 'Cheese Burger', price: 80, image: require('../assets/burger.png') },
-      { id: '3', name: 'Meat Burger', price: 98, image: require('../assets/burger.png') },
-      { id: '4', name: 'Chicken Burger', price: 80, image: require('../assets/burger.png') },
-      { id: '5', name: 'Burger', price: 78, image: require('../assets/burger.png') },
-      { id: '6', name: 'Burger', price: 28, image: require('../assets/burger.png') },
-      { id: '7', name: 'Burger', price: 83, image: require('../assets/burger.png') },
-      { id: '8', name: 'Burger', price: 28, image: require('../assets/burger.png') },
-      // Add more products as needed
-    ];
+    const fetchProducts = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/api/products');
+        console.log(response.data.products);
+        setProducts(response.data.products); // Set products state with data from the API response
+        setLoading(false); // Set loading to false after data is fetched
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        setLoading(false); // Set loading to false even if there's an error
+      }
+    };
 
-    setProducts(dummyData);
+    fetchProducts();
   }, []);
 
   const renderProductItem = ({ item }) => (
@@ -37,8 +38,28 @@ const HomeScreen = ({ navigation }) => {
     >
       <Image source={item.image} style={styles.productImage} />
       <Text style={styles.productName}>{item.name}</Text>
-      <Text style={styles.productPrice}>K{item.price.toFixed(2)}</Text>
+      <Text style={styles.productPrice}>K{item.price}</Text>
+      <View style={styles.iconButtonsContainer}>
+        <TouchableOpacity style={styles.iconButtonAdd} onPress={() => {/* Handle add to cart */}}>
+          <AntDesign name="shoppingcart" size={20} color="black" />
+        </TouchableOpacity>
+        <View style={styles.iconGap} />
+        <View style={styles.iconGap} />
+        <TouchableOpacity style={styles.iconButtonShare} onPress={() => {/* Handle share */}}>
+          <AntDesign name="sharealt" size={20} color="black" />
+        </TouchableOpacity>
+      </View>
     </TouchableOpacity>
+  );
+  
+
+  // Shimmer effect for product items
+  const renderShimmerProductItem = () => (
+    <View style={styles.productContainer}>
+      <ShimmerPlaceholder style={styles.productImage} />
+      <ShimmerPlaceholder style={[styles.productName, { marginTop: 8, marginBottom: 4 }]} />
+      <ShimmerPlaceholder style={styles.productPrice} />
+    </View>
   );
 
   const categories = [
@@ -77,14 +98,25 @@ const HomeScreen = ({ navigation }) => {
 
       <View style={styles.mostPop}>
         <Text style={styles.headerText1}> Most Popular </Text>
-        <FlatList
-          data={products}
-          numColumns={2} // Set the number of columns for the grid view
-          renderItem={renderProductItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.productList}
-          showsVerticalScrollIndicator={false}
-        />
+          {loading ? (
+            <FlatList
+              data={[1, 2, 3, 4]} // Dummy data for shimmer effect
+              numColumns={2}
+              renderItem={renderShimmerProductItem}
+              keyExtractor={(item, index) => index.toString()}
+              contentContainerStyle={styles.productList}
+              showsVerticalScrollIndicator={false}
+            />
+          ) : (
+            <FlatList
+              data={products}
+              numColumns={2}
+              renderItem={renderProductItem}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.productList}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
       </View>
     </ScrollView>
   );
@@ -199,6 +231,27 @@ const styles = StyleSheet.create({
     marginHorizontal:20,
     color: 'green',
     fontWeight: 'bold',
+  },
+  
+  iconGap: {
+    width: 10, // Adjust the width as needed
+  },
+  iconButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  iconButtonAdd: {
+    padding: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  iconButtonShare: {
+    padding: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ccc',
   },
 });
 
