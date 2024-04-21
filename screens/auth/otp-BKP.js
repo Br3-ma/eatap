@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import { View, ImageBackground, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const backgroundImage = require('../../assets/img/otp.jpg');
 
-const RegisterByOTPScreen = ({ navigation }) => {
+const RegisterByOTPScreen = ({ navigation }) => { // Pass the navigation prop
   const [step, setStep] = useState(1);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOTP] = useState('');
@@ -15,32 +14,38 @@ const RegisterByOTPScreen = ({ navigation }) => {
   const handleNext = async () => {
     switch (step) {
       case 1:
+          // POST request to backend endpoint to submit phone number
           try {
-            await axios.post('https://sms.mightyfinance.co.zm/api/signup/request-otp', { phoneNumber });
+            const response = await axios.post('https://sms.mightyfinance.co.zm/api/signup/request-otp', {
+              phoneNumber: phoneNumber,
+            });
             setStep(step + 1);
           } catch (error) {
-            console.error('Request OTP Error:', error);
+            console.error(error); 
           }
         break;
       case 2:
+          // POST request to backend endpoint to submit OTP
           try {
-            await axios.post('https://sms.mightyfinance.co.zm/api/signup/verify-otp', { otp });
+            const response = await axios.post('https://sms.mightyfinance.co.zm/api/signup/verify-otp', {
+              otp: otp,
+            });
             setStep(step + 1);
           } catch (error) {
-            console.error('Verify OTP Error:', error);
+            console.error(error); 
           }
         break;
       case 3:
+          // POST request to backend endpoint to submit fullname
           try {
             const response = await axios.post('https://sms.mightyfinance.co.zm/api/signup/user-info', {
               fullname: name,
-              phoneNumber,
+              phoneNumber: phoneNumber,
             });
-            // Save the user info to AsyncStorage
-            await AsyncStorage.setItem('userInfo', JSON.stringify(response.data));
+            //Goto Overview
             navigation.navigate('Overview');
           } catch (error) {
-            console.error('Save User Info Error:', error);
+            console.error(error); 
           }
         break;
       default:
@@ -60,7 +65,6 @@ const RegisterByOTPScreen = ({ navigation }) => {
               placeholder="097 -- -- ---"
               value={phoneNumber}
               onChangeText={setPhoneNumber}
-              keyboardType="phone-pad"
             />
           </View>
         );
@@ -68,13 +72,12 @@ const RegisterByOTPScreen = ({ navigation }) => {
         return (
           <View>
             <Text style={styles.title}>Enter Verification Code</Text>
-            <Text style={styles.subtitle}>Check your SMS messages</Text>
+            <Text style={styles.subtitle}>We are automatically detecting a SMS send to your mobile number ********7755</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter OTP"
+              placeholder="X X X X X"
               value={otp}
               onChangeText={setOTP}
-              keyboardType="number-pad"
             />
           </View>
         );
@@ -82,6 +85,7 @@ const RegisterByOTPScreen = ({ navigation }) => {
         return (
           <View>
             <Text style={styles.title}>Enter Your Name</Text>
+            <Text style={styles.subtitle}>Provide a number you go by or a nickname</Text>
             <TextInput
               style={styles.input}
               placeholder="Full name"
@@ -121,7 +125,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 51, 0, 0.7)',
+    backgroundColor: 'rgba(0, 51, 0, 0.7)', // Greenish dark overlay
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
@@ -129,10 +133,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 21,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 2,
     color: 'white',
   },
-  subtitle: {
+  subtitle:{
     fontSize: 14,
     marginBottom: 20,
     color: 'white',
@@ -155,6 +159,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 12,
     borderRadius: 5,
+    color: '#000',
   },
 });
 

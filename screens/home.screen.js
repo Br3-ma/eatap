@@ -16,7 +16,7 @@ const HomeScreen = ({ navigation }) => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/products');
+        const response = await axios.get('https://sms.mightyfinance.co.zm/api/products');
         setProducts(response.data.products);
         setLoading(false);
       } catch (error) {
@@ -94,7 +94,7 @@ const HomeScreen = ({ navigation }) => {
   const renderProductItem = ({ item }) => (
     <TouchableOpacity
       style={styles.productContainer}
-      onPress={() => navigation.navigate('ProductDetails', { productId: item.id })}
+      onPress={() => navigation.navigate('ProductDetails', { product: item })}
     >
       <Image source={item.image} style={styles.productImage} />
       <Text style={styles.productName}>{item.name}</Text>

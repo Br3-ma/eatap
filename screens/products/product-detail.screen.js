@@ -1,33 +1,45 @@
-import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, Animated } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, ScrollView, TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons'; // Import FontAwesome icons
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const ProductDetailsScreen = ({ route }) => {
-  const { productId } = route.params;
-
-  // Dummy data placeholder (replace with actual data fetching logic)
-  const productDetails = {
-    id: productId,
-    name: 'Pizza',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin euismod urna ac lacus interdum, a varius massa dictum.',
-    price: 99.99,
-    address: '123 Main Street, City ville',
-    rating: 4.5,
-    image: require('../../assets/pizza.jpg'), // Replace with the correct path
-    // Add more details as needed
-  };
+const ProductDetailsScreen = ({ route, navigation }) => {
+  const { product } = route.params;
+  const [cartTotal, setCartTotal] = useState(0);
 
   const [quantity, setQuantity] = useState(1);
   const [animatedValue] = useState(new Animated.Value(0));
 
-  const handleAddToCart = () => {
-    // Implement logic to add the product to the cart
-    console.log(`Added ${quantity} ${productDetails.name} to cart`);
+  const addToCart = async (item) => {
+    try {
+      let cartItems = [];
+      const existingItems = await AsyncStorage.getItem('cartItems');
+      if (existingItems) {
+        cartItems = JSON.parse(existingItems);
+      }
+      cartItems.push({...item, quantity: quantity}); // Ensure you add the item along with its quantity
+      await AsyncStorage.setItem('cartItems', JSON.stringify(cartItems));
+      const total = await getCartTotal();
+      setCartTotal(total);
+    } catch (error) {
+      console.error('Error adding item to cart:', error);
+    }
   };
 
-  const handleAddToDonationBox = () => {
-    // Implement logic to add the product to the donation box
-    console.log(`Added ${quantity} ${productDetails.name} to donation box`);
+  const getCartTotal = async () => {
+    try {
+      const cartItems = await AsyncStorage.getItem('cartItems');
+      if (cartItems) {
+        const parsedCartItems = JSON.parse(cartItems);
+        const total = parsedCartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+        return total;
+      } else {
+        return 0;
+      }
+    } catch (error) {
+      console.error('Error getting cart total:', error);
+      return 0;
+    }
   };
 
   const fadeIn = () => {
@@ -42,13 +54,16 @@ const ProductDetailsScreen = ({ route }) => {
 
   return (
     <ScrollView style={styles.container}>
-      <Image source={productDetails.image} style={styles.productImage} resizeMode="cover" />
+      <Image source={{uri: product.image}} style={styles.productImage} resizeMode="cover" />
       <View style={styles.detailsContainer}>
-        <Text style={styles.productName}>{productDetails.name}</Text>
-        <Text style={styles.productDescription}>{productDetails.description}</Text>
-        <Text style={styles.productPrice}>Price: K{productDetails.price.toFixed(2)}</Text>
-        <Text style={styles.productAddress}>Address: {productDetails.address}</Text>
-        <Text style={styles.productRating}>Rating: {productDetails.rating} stars</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <FontAwesome name="angle-left" size={24} color="white" />
+        </TouchableOpacity>
+        <Text style={styles.productName}>{product.name}</Text>
+        <Text style={styles.productDescription}>{product.description}</Text>
+        <Text style={styles.productPrice}>Price: K{product.price}</Text>
+        <Text style={styles.productAddress}>Address: {product.address}</Text>
+        <Text style={styles.productRating}>Rating: {product.rating} stars</Text>
         <View style={styles.quantityContainer}>
           <Text style={styles.quantityLabel}>Quantity:</Text>
           <TouchableOpacity
@@ -68,18 +83,10 @@ const ProductDetailsScreen = ({ route }) => {
         <Animated.View
           style={[styles.addButton, { opacity: animatedValue }]}
         >
-          <TouchableOpacity style={styles.button} onPress={handleAddToCart}>
+          <TouchableOpacity style={styles.button} onPress={() => addToCart(product)}>
             <Text style={styles.buttonText}>Add to Cart</Text>
           </TouchableOpacity>
         </Animated.View>
-        <Animated.View
-          style={[styles.addButton, { opacity: animatedValue }]}
-        >
-          <TouchableOpacity style={styles.button} onPress={handleAddToDonationBox}>
-            <Text style={styles.buttonText}>Add to Donation Box</Text>
-          </TouchableOpacity>
-        </Animated.View>
-        {/* Add more details as needed */}
       </View>
     </ScrollView>
   );
@@ -94,6 +101,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  backButton: {
+    position: 'absolute',
+    top: -50,
+    left: 20,
+    zIndex: 1,
   },
   productImage: {
     width: '100%',
@@ -159,7 +172,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  // Add more styles as needed
 });
 
 export default ProductDetailsScreen;
