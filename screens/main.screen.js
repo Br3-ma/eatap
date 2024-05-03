@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useNavigation, StackActions } from '@react-navigation/native'; // Import useNavigation hook and StackActions
+import { TextInput, Button, useTheme } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,6 +15,9 @@ const Tab = createBottomTabNavigator();
 
 const MainScreen = () => {
   const [cartCount, setCartCount] = useState(0);
+  const [searchModalVisible, setSearchModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const { colors } = useTheme();
 
   useEffect(() => {
     const fetchCartCount = async () => {
@@ -28,96 +32,141 @@ const MainScreen = () => {
         console.error('Error fetching cart count:', error);
       }
     };
-
     fetchCartCount();
   }, []);
 
   const HeaderIcons = () => {
     const navigation = useNavigation(); // Access the navigation object using useNavigation
-
     const navigateToCart = () => {
       navigation.navigate('Cart'); // Navigate to the 'CartScreen' stack screen
     };
 
+    //Remove this
     const navigateToSearch = () => {
       // Navigate to the search screen
     };
 
+    const openSearchModal = () => {
+      setSearchModalVisible(true);
+    };
+
+    const handleSearch = () => {
+      console.log('Search for:', searchQuery);
+      // setSearchModalVisible(false); // Close the modal after search
+    };
+
     return (
       <View style={styles.headerIconsContainer}>
-        <TouchableOpacity onPress={navigateToSearch} style={styles.headerIcon}>
-          <Ionicons name="search-outline" size={24} color="orange" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={navigateToCart} style={styles.headerIcon}>
-          <Ionicons name="cart-outline" size={24} color="green" />
-          {cartCount > 0 && <Text style={styles.cartCount}>{cartCount}</Text>}
-        </TouchableOpacity>
+
+          <TouchableOpacity onPress={openSearchModal} style={styles.headerIcon}>
+              <Ionicons name="search-outline" size={24} color="orange" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={navigateToCart} style={styles.headerIcon}>
+              <Ionicons name="cart-outline" size={24} color="green" />
+              {cartCount > 0 && <Text style={styles.cartCount}>{cartCount}</Text>}
+          </TouchableOpacity>k
+
+
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={searchModalVisible}
+          onRequestClose={() => setSearchModalVisible(false)}>
+          <View style={styles.centeredView}>
+            <View style={styles.modalView}>
+              <TextInput
+                mode="outlined"
+                label="Search"
+                placeholder="Type here..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                style={styles.textInput}
+                right={<TextInput.Icon name="magnify" onPress={handleSearch} />}
+                autoFocus
+              />
+              <Button
+                mode="contained"
+                icon="arrow-right"
+                onPress={handleSearch}
+                style={styles.button}
+              >Find Stuffs
+              </Button>
+            </View>
+          </View>
+        </Modal>
+
       </View>
     );
   };
 
   return (
     <View style={styles.container}>
-      <BlurView intensity={100} style={StyleSheet.absoluteFill}>
-        <Tab.Navigator
-          screenOptions={({ route }) => ({
-            tabBarActiveTintColor: 'white',
-            tabBarInactiveTintColor: 'gray',
-            tabBarStyle: {
-              backgroundColor: '#71BD39',
-              borderTopWidth: 0,
-              elevation: 0,
-            },
-            headerRight: () => <HeaderIcons />,
-          })}
-        >
-          <Tab.Screen
-            name="Eatapp"
-            component={HomeScreen}
-            options={{
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="home" color={color} size={size} />
-              ),
-            }}
-          />
-          <Tab.Screen
-            name="My Food"
-            component={MyFoodScreen}
-            options={{
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="fast-food-outline" color={color} size={size} />
-              ),
-            }}
-          />
-          <Tab.Screen
-            name="Donate"
-            component={BoxScreen}
-            options={{
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="gift-outline" color={color} size={size} />
-              ),
-            }}
-          />
-          {/* <Tab.Screen
-            name="Cart"
-            component={CartScreen}
-            options={{
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="cart-outline" color={color} size={size} />
-              ),
-            }}
-          /> */}
-          <Tab.Screen
-            name="You"
-            component={MeScreen}
-            options={{
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="person-outline" color={color} size={size} />
-              ),
-            }}
-          />
-        </Tab.Navigator>
-      </BlurView>
+        <BlurView intensity={100} style={StyleSheet.absoluteFill}>
+            <Tab.Navigator
+              screenOptions={({ route }) => ({
+                tabBarActiveTintColor: 'white',
+                tabBarInactiveTintColor: 'gray',
+                tabBarStyle: {
+                  backgroundColor: '#71BD39',
+                  borderTopWidth: 0,
+                  elevation: 0,
+                },
+                headerRight: () => <HeaderIcons />,
+              })}
+            >
+
+                <Tab.Screen
+                  name="Eatapp"
+                  component={HomeScreen}
+                  options={{
+                    tabBarIcon: ({ color, size }) => (
+                      <Ionicons name="home" color={color} size={size} />
+                    ),
+                  }}
+                />
+
+                <Tab.Screen
+                  name="My Food"
+                  component={MyFoodScreen}
+                  options={{
+                    tabBarIcon: ({ color, size }) => (
+                      <Ionicons name="fast-food-outline" color={color} size={size} />
+                    ),
+                  }}
+                />
+
+                <Tab.Screen
+                  name="Donate"
+                  component={BoxScreen}
+                  options={{
+                    tabBarIcon: ({ color, size }) => (
+                      <Ionicons name="gift-outline" color={color} size={size} />
+                    ),
+                  }}
+                />
+
+                {/* <Tab.Screen
+                  name="Cart"
+                  component={CartScreen}
+                  options={{
+                    tabBarIcon: ({ color, size }) => (
+                      <Ionicons name="cart-outline" color={color} size={size} />
+                    ),
+                  }}
+                /> */}
+
+                <Tab.Screen
+                  name="You"
+                  component={MeScreen}
+                  options={{
+                    tabBarIcon: ({ color, size }) => (
+                      <Ionicons name="person-outline" color={color} size={size} />
+                    ),
+                  }}
+                />
+
+            </Tab.Navigator>
+        </BlurView>
     </View>
   );
 };
@@ -125,14 +174,53 @@ const MainScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginHorizontal: 10, // Add horizontal margins to the container View
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerIconsContainer: {
     flexDirection: 'row',
-    marginRight: 16,
+    paddingHorizontal: 10,
+    paddingTop: 50, // adjust according to your status bar + header height
   },
   headerIcon: {
-    marginLeft: 16,
+    backgroundColor: 'white',
+    padding: 10,
+    borderRadius: 30,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 1, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 35,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  textInput: {
+    width: 300,
+    marginBottom: 20,
+  },
+  button: {
+    width: '100%',
+    paddingVertical: 8,
+    backgroundColor:'green',
   },
   cartCount: {
     position: 'absolute',

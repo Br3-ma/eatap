@@ -1,31 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect, useRef  } from 'react';
+import {  View, Text, FlatList, TouchableOpacity, Image, ScrollView, Animated,  Dimensions} from 'react-native';
 import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
-import axios from 'axios';
 import { AntDesign } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { PanGestureHandler, State } from 'react-native-gesture-handler';
-import Animated, { useAnimatedGestureHandler, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import styles from '../assets/css/home.css';  
+import { fetchProducts, addToCart, getCartTotal } from '../controllers/cart/cartController'; 
+
+const { width } = Dimensions.get('window');
 
 const HomeScreen = ({ navigation }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cartTotal, setCartTotal] = useState(0);
-  const [cartPosition, setCartPosition] = useState({ x: 0, y: 0 });
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const categories = [
+    { name: 'Groceries', image: require('../assets/a.jpg') },
+    { name: 'Office', image: require('../assets/b.jpg') },
+    { name: 'Medicine', image: require('../assets/c.webp') },
+    { name: 'Fast Foods', image: require('../assets/d.jpg') },
+    { name: 'Fruits', image: require('../assets/e.jpg') },
+    { name: 'Medicine', image: require('../assets/c.webp') },
+    { name: 'Fast Foods', image: require('../assets/d.jpg') },
+    { name: 'Fruits', image: require('../assets/e.jpg') },
+    { name: 'Medicine', image: require('../assets/c.webp') },
+    { name: 'Fast Foods', image: require('../assets/d.jpg') },
+    { name: 'Fruits', image: require('../assets/e.jpg') },
+  ];
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await axios.get('https://sms.mightyfinance.co.zm/api/products');
-        setProducts(response.data.products);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
+    async function loadData() {
+      const products = await fetchProducts();
+      setProducts(products);
+      setLoading(false);
+      const total = await getCartTotal();
+      setCartTotal(total);
+    }
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -37,59 +46,15 @@ const HomeScreen = ({ navigation }) => {
     updateCartTotal();
   }, []);
 
-  const addToCart = async (item) => {
-    try {
-      let cartItems = [];
-      const existingItems = await AsyncStorage.getItem('cartItems');
-      if (existingItems) {
-        cartItems = JSON.parse(existingItems);
-      }
-      cartItems.push(item);
-      await AsyncStorage.setItem('cartItems', JSON.stringify(cartItems));
-      const total = await getCartTotal();
-      setCartTotal(total);
-    } catch (error) {
-      console.error('Error adding item to cart:', error);
-    }
-  };
-
-  const getCartTotal = async () => {
-    try {
-      const cartItems = await AsyncStorage.getItem('cartItems');
-      if (cartItems) {
-        const parsedCartItems = JSON.parse(cartItems);
-        const total = parsedCartItems.reduce((acc, item) => acc + item.price, 0);
-        return total;
-      } else {
-        return 0;
-      }
-    } catch (error) {
-      console.error('Error getting cart total:', error);
-      return 0;
-    }
-  };
-
-  const onGestureEvent = useAnimatedGestureHandler({
-    onStart: (_, context) => {
-      context.startX = cartPosition.x;
-      context.startY = cartPosition.y;
-    },
-    onActive: (event, context) => {
-      setCartPosition({
-        x: context.startX + event.translationX,
-        y: context.startY + event.translationY,
-      });
-    },
-  });
-
-  const cartStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        { translateX: withSpring(cartPosition.x) },
-        { translateY: withSpring(cartPosition.y) },
-      ],
-    };
-  }, [cartPosition]); // Specify cartPosition as a dependency
+  useEffect(() => {
+    const interval = setInterval(() => {
+      Animated.spring(scrollX, {
+        toValue: scrollX._value >= width * 2 ? 0 : scrollX._value + width,
+        useNativeDriver: false,
+      }).start();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   const renderProductItem = ({ item }) => (
     <TouchableOpacity
@@ -120,22 +85,22 @@ const HomeScreen = ({ navigation }) => {
     </View>
   );
 
-  const categories = [
-    { name: 'Groceries', image: require('../assets/a.jpg') },
-    { name: 'Office', image: require('../assets/b.jpg') },
-    { name: 'Medicine', image: require('../assets/c.webp') },
-    { name: 'Fast Foods', image: require('../assets/d.jpg') },
-    { name: 'Fruits', image: require('../assets/e.jpg') },
-    { name: 'Medicine', image: require('../assets/c.webp') },
-    { name: 'Fast Foods', image: require('../assets/d.jpg') },
-    { name: 'Fruits', image: require('../assets/e.jpg') },
-    { name: 'Medicine', image: require('../assets/c.webp') },
-    { name: 'Fast Foods', image: require('../assets/d.jpg') },
-    { name: 'Fruits', image: require('../assets/e.jpg') },
-  ];
+  const HeroBanner = ({ image, title, buttonText }) => (
+    <View style={styles.heroSlide}>
+      <Image source={image} style={styles.heroBannerImage} />
+      <View style={styles.overlay}>
+        <Text style={styles.heroBannerText}>{title}</Text>
+        <TouchableOpacity style={styles.heroBannerButton}>
+          <Text style={styles.heroBannerButtonText}>{buttonText}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+  
 
   return (
     <ScrollView style={styles.scrollContainer}>
+      {/* Display carousel categories slider */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesContainer}>
         {categories.map((category, index) => (
           <TouchableOpacity key={index} style={styles.categoryTab}>
@@ -145,14 +110,25 @@ const HomeScreen = ({ navigation }) => {
         ))}
       </ScrollView>
 
+      {/* Display carousel banner auto inifinit slider */}
       <View style={styles.heroBanner}>
-        <Image source={require('../assets/welcome-banner.jpg')} style={styles.heroBannerImage} />
-        <Text style={styles.heroBannerText}>Special Promo Today!</Text>
-        <TouchableOpacity style={styles.heroBannerButton}>
-          <Text style={styles.heroBannerButtonText}>Shop Now</Text>
-        </TouchableOpacity>
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: false })}
+          scrollEventThrottle={16}
+          style={styles.heroBannerContainer}
+        >
+          <HeroBanner image={require('../assets/welcome-banner.jpg')} title="Welcome!" buttonText="Shop Now" />
+          <HeroBanner image={require('../assets/welcome-banner2.jpg')} title="New Arrivals" buttonText="View More" />
+          <HeroBanner image={require('../assets/welcome-banner3.webp')} title="Special Offers" buttonText="Get Now" />
+        </ScrollView>
       </View>
 
+      {/* Display stores here */}
+
+      {/* Display Most Popular Products */}
       <View style={styles.mostPop}>
         <Text style={styles.headerText1}> Most Popular </Text>
         {loading ? (
@@ -176,153 +152,10 @@ const HomeScreen = ({ navigation }) => {
         )}
       </View>
 
-      <PanGestureHandler onGestureEvent={onGestureEvent}>
-        <Animated.View style={[styles.cartPreview, cartStyle]}>
-          <Text>Cart Total: {cartTotal}</Text>
-        </Animated.View>
-      </PanGestureHandler>
+
     </ScrollView>
   );
 };
 
-const styles = StyleSheet.create({
-  scrollContainer: {
-    padding: 4,
-    flex: 1,
-    overflow: 'hidden',
-  },
-  categoriesContainer: {
-    marginTop: 4,
-    marginBottom: 16,
-    paddingBottom: 0,
-    flexDirection: 'row',
-  },
-  categoryTab: {
-    marginRight: 16,
-    alignItems: 'center',
-    paddingBottom: 50,
-  },
-  categoryImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginBottom: 8,
-  },
-  productList: {
-    justifyContent: 'center',
-    marginTop: 16,
-  },
-  productContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-    flex: 1,
-    margin: 4,
-    padding: 4,
-    shadowColor: '#00000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
-    shadowRadius: 5,
-    elevation: 2,
-    backgroundColor: '#fff',
-    borderRadius: 3,
-  },
-  productImage: {
-    width: 140,
-    height: 140,
-    borderRadius: 5,
-    marginBottom: 8,
-  },
-  productName: {
-    fontSize: 15,
-    marginBottom: 2,
-  },
-  productPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: 'green',
-  },
-  mostPop:{
-    borderRadius: 10,
-    backgroundColor: 'white',
-  },
-  heroBanner: {
-    marginTop: 0,
-    marginBottom: 16,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  heroBannerImage: {
-    width: '100%',
-    height: 150,
-    resizeMode: 'cover',
-  },
-  heroBannerText: {
-    position: 'absolute',
-    top: 20,
-    left: 20,
-    color: '#ffffff',
-    fontSize: 27,
-    fontWeight: 'bold',
-  },
-  heroBannerButton: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    backgroundColor: '#bc2900',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  heroBannerButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  headerText1: {
-    position: 'relative',
-    top: 20,
-    left: 10,
-    fontSize: 18,
-    marginBottom: 10,
-    marginHorizontal:20,
-    color: 'green',
-    fontWeight: 'bold',
-  },
-  iconGap: {
-    width: 10,
-  },
-  iconButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
-  iconButtonAdd: {
-    padding: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#25C480',
-    backgroundColor:'#00FF92',
-  },
-  iconButtonShare: {
-    padding: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#8AEAC0',
-    backgroundColor:'#6F8D80',
-  },
-  cartPreview: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#fff',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#ccc',
-    elevation: 5,
-    zIndex: 999,
-  },
-});
 
 export default HomeScreen;

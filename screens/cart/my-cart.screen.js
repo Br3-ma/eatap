@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ImageBackground, Text, FlatList, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import { View, ImageBackground, Image, Text, FlatList, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Contacts from 'expo-contacts';
@@ -61,9 +61,32 @@ const CartScreen = ({ navigation }) => {
   const selectContact = async (contact) => {
     if (contact.phoneNumbers && contact.phoneNumbers.length > 0) {
       await AsyncStorage.setItem('collector', contact.phoneNumbers[0].number);
-      setModalVisible(false);  // Assume closing modal after selection
-      navigation.navigate('Payment');  // Navigate to Payment or next step
+      setModalVisible(false);
+      navigation.navigate('Payment');
     }
+  };
+
+  const handleIncreaseQuantity = (index) => {
+    const updatedItems = [...cartItems];
+    updatedItems[index].quantity += 1;
+    AsyncStorage.setItem('cartItems', JSON.stringify(updatedItems));
+    consolidateItems(updatedItems);
+  };
+
+  const handleDecreaseQuantity = (index) => {
+    const updatedItems = [...cartItems];
+    if (updatedItems[index].quantity > 1) {
+      updatedItems[index].quantity -= 1;
+      AsyncStorage.setItem('cartItems', JSON.stringify(updatedItems));
+      consolidateItems(updatedItems);
+    }
+  };
+
+  const handleDeleteItem = (index) => {
+    const updatedItems = [...cartItems];
+    updatedItems.splice(index, 1);
+    AsyncStorage.setItem('cartItems', JSON.stringify(updatedItems));
+    consolidateItems(updatedItems);
   };
 
   const totalPrice = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
@@ -80,19 +103,22 @@ const CartScreen = ({ navigation }) => {
           data={cartItems}
           renderItem={({ item, index }) => (
             <View style={styles.card}>
-              <Text style={styles.itemName}>{item.name}</Text>
-              <Text style={styles.itemPrice}>K{item.price.toFixed(2)}</Text>
-              <View style={styles.buttonGroup}>
-                <TouchableOpacity onPress={() => handleDecreaseQuantity(index)}>
-                  <FontAwesome name="minus-circle" size={24} color="red" />
-                </TouchableOpacity>
-                <Text style={styles.quantity}>{item.quantity}</Text>
-                <TouchableOpacity onPress={() => handleIncreaseQuantity(index)}>
-                  <FontAwesome name="plus-circle" size={24} color="green" />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleDeleteItem(index)}>
-                  <FontAwesome name="trash" size={24} color="white" />
-                </TouchableOpacity>
+              <Image source={{ uri: item.image }} style={styles.productImage} />
+              <View style={styles.itemDetails}>
+                <Text style={styles.itemName}>{item.name}</Text>
+                <Text style={styles.itemPrice}>K{item.price.toFixed(2)}</Text>
+                <View style={styles.buttonGroup}>
+                  <TouchableOpacity onPress={() => handleDecreaseQuantity(index)} style={styles.minusButton}>
+                    <FontAwesome name="minus-circle" size={24} color="#FF6347" />
+                  </TouchableOpacity>
+                  <Text style={styles.quantity}>{item.quantity}</Text>
+                  <TouchableOpacity onPress={() => handleIncreaseQuantity(index)} style={styles.plusButton}>
+                    <FontAwesome name="plus-circle" size={24} color="#4682B4" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDeleteItem(index)} style={styles.deleteButton}>
+                    <FontAwesome name="trash" size={24} color="white" />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           )}
@@ -152,7 +178,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 23,
+    top: 20,
     left: 20,
   },
   title: {
@@ -160,33 +186,52 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
     marginBottom: 10,
-    marginLeft:20,
+    marginTop: 20,  // Adjusted for better alignment
   },
   card: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 10,
     padding: 15,
     marginBottom: 10,
+    alignItems: 'center',  // Align items in the center
+  },
+  productImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 15,  // Added space between image and text
+  },
+  itemDetails: {
+    flex: 1,  // Take available space
   },
   itemName: {
-    fontSize: 16,
+    fontSize: 18,
     color: 'white',
+    fontWeight: 'bold',
   },
   itemPrice: {
     fontSize: 16,
     fontWeight: 'bold',
     color: 'white',
+    marginBottom: 5,  // Add space above the button group
   },
   buttonGroup: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  minusButton: {
+    marginRight: 10,
+  },
+  plusButton: {
+    marginLeft: 10,
+  },
+  deleteButton: {
+    marginLeft: 20,
+  },
   quantity: {
     fontSize: 16,
     color: 'white',
-    marginHorizontal: 10,
   },
   emptyCart: {
     color: 'white',
@@ -222,7 +267,6 @@ const styles = StyleSheet.create({
     color: 'white',
     textAlign: 'center',
   },
-  // Modal styles
   centeredView: {
     flex: 1,
     justifyContent: 'center',

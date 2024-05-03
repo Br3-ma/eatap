@@ -2,53 +2,51 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, ScrollView } from 'react-native';
 import ShimmerPlaceholder from 'react-native-shimmer-placeholder';
 import axios from 'axios';
-// ------ Icons ----------
-import { FontAwesome } from '@expo/vector-icons'; // Import FontAwesome icons
-import { Octicons } from '@expo/vector-icons'; 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { MaterialIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 import { AntDesign } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import Animated, { useAnimatedGestureHandler, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
-import { Entypo } from '@expo/vector-icons';
 
 const HomeScreen = ({ navigation }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [cartTotal, setCartTotal] = useState(0); // State to store cart total
+  const [cartTotal, setCartTotal] = useState(0);
   const [cartPosition, setCartPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/products');
-        console.log(response.data.products);
-        setProducts(response.data.products); // Set products state with data from the API response
-        setLoading(false); // Set loading to false after data is fetched
+        const response = await axios.get('http://localhost/eatapp/eat-server/api/products');
+        // const response = await axios.get('https://sms.mightyfinance.co.zm/api/products');
+        setProducts(response.data.products);
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching products:', error);
-        setLoading(false); // Set loading to false even if there's an error
+        setLoading(false);
       }
     };
 
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+    const updateCartTotal = async () => {
+      const total = await getCartTotal();
+      setCartTotal(total);
+    };
+
+    updateCartTotal();
+  }, []);
+
   const addToCart = async (item) => {
     try {
-      const existingItems = await AsyncStorage.getItem('cartItems');
       let cartItems = [];
-
+      const existingItems = await AsyncStorage.getItem('cartItems');
       if (existingItems) {
         cartItems = JSON.parse(existingItems);
       }
-
       cartItems.push(item);
-
       await AsyncStorage.setItem('cartItems', JSON.stringify(cartItems));
-      // Update cart total after adding item to cart
       const total = await getCartTotal();
       setCartTotal(total);
     } catch (error) {
@@ -59,7 +57,6 @@ const HomeScreen = ({ navigation }) => {
   const getCartTotal = async () => {
     try {
       const cartItems = await AsyncStorage.getItem('cartItems');
-
       if (cartItems) {
         const parsedCartItems = JSON.parse(cartItems);
         const total = parsedCartItems.reduce((acc, item) => acc + item.price, 0);
@@ -73,10 +70,32 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  const onGestureEvent = useAnimatedGestureHandler({
+    onStart: (_, context) => {
+      context.startX = cartPosition.x;
+      context.startY = cartPosition.y;
+    },
+    onActive: (event, context) => {
+      setCartPosition({
+        x: context.startX + event.translationX,
+        y: context.startY + event.translationY,
+      });
+    },
+  });
+
+  const cartStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { translateX: withSpring(cartPosition.x) },
+        { translateY: withSpring(cartPosition.y) },
+      ],
+    };
+  }, [cartPosition]); // Specify cartPosition as a dependency
+
   const renderProductItem = ({ item }) => (
     <TouchableOpacity
       style={styles.productContainer}
-      onPress={() => navigation.navigate('ProductDetails', { productId: item.id })}
+      onPress={() => navigation.navigate('ProductDetails', { product: item })}
     >
       <Image source={item.image} style={styles.productImage} />
       <Text style={styles.productName}>{item.name}</Text>
@@ -94,7 +113,6 @@ const HomeScreen = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  // Shimmer effect for product items
   const renderShimmerProductItem = () => (
     <View style={styles.productContainer}>
       <ShimmerPlaceholder style={styles.productImage} />
@@ -115,20 +133,20 @@ const HomeScreen = ({ navigation }) => {
     { name: 'Medicine', image: require('../assets/c.webp') },
     { name: 'Fast Foods', image: require('../assets/d.jpg') },
     { name: 'Fruits', image: require('../assets/e.jpg') },
-  ]; // Replace with your actual categories
+  ];
 
   return (
     <ScrollView style={styles.scrollContainer}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesContainer}>
-      {categories.map((category, index) => (
-        <TouchableOpacity key={index} style={styles.categoryTab}>
-          <Image source={category.image} style={styles.categoryImage} />
-          <Text>{category.name}</Text>
-        </TouchableOpacity>
-      ))}
+        {categories.map((category, index) => (
+          <TouchableOpacity key={index} style={styles.categoryTab}>
+            <Image source={category.image} style={styles.categoryImage} />
+            <Text>{category.name}</Text>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
 
-      {/* Add a hero banner ad here */}
+      {/* Make this hero banner be an automatic horizontal slider */}
       <View style={styles.heroBanner}>
         <Image source={require('../assets/welcome-banner.jpg')} style={styles.heroBannerImage} />
         <Text style={styles.heroBannerText}>Special Promo Today!</Text>
@@ -139,30 +157,32 @@ const HomeScreen = ({ navigation }) => {
 
       <View style={styles.mostPop}>
         <Text style={styles.headerText1}> Most Popular </Text>
-          {loading ? (
-            <FlatList
-              data={[1, 2, 3, 4]} // Dummy data for shimmer effect
-              numColumns={2}
-              renderItem={renderShimmerProductItem}
-              keyExtractor={(item, index) => index.toString()}
-              contentContainerStyle={styles.productList}
-              showsVerticalScrollIndicator={false}
-            />
-          ) : (
-            <FlatList
-              data={products}
-              numColumns={2}
-              renderItem={renderProductItem}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.productList}
-              showsVerticalScrollIndicator={false}
-            />
-          )}
+        {loading ? (
+          <FlatList
+            data={[1, 2, 3, 4]} // Dummy data for shimmer effect
+            numColumns={2}
+            renderItem={renderShimmerProductItem}
+            keyExtractor={(item, index) => index.toString()}
+            contentContainerStyle={styles.productList}
+            showsVerticalScrollIndicator={false}
+          />
+        ) : (
+          <FlatList
+            data={products}
+            numColumns={2}
+            renderItem={renderProductItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.productList}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
       </View>
-      {/* Display cart total */}
-      <View style={styles.cartPreview}>
-        <Text>Cart Total: {cartTotal}</Text>
-      </View>
+
+      <PanGestureHandler onGestureEvent={onGestureEvent}>
+        <Animated.View style={[styles.cartPreview, cartStyle]}>
+          <Text>Cart Total: {cartTotal}</Text>
+        </Animated.View>
+      </PanGestureHandler>
     </ScrollView>
   );
 };
@@ -171,13 +191,13 @@ const styles = StyleSheet.create({
   scrollContainer: {
     padding: 4,
     flex: 1,
-    overflow: 'hidden', // Add this line to hide the scrollbar
+    overflow: 'hidden',
   },
   categoriesContainer: {
     marginTop: 4,
     marginBottom: 16,
     paddingBottom: 0,
-    flexDirection: 'row', // Set the direction to row for horizontal scroll
+    flexDirection: 'row',
   },
   categoryTab: {
     marginRight: 16,
@@ -204,9 +224,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 5,
-    elevation: 2, // For Android
-    backgroundColor: '#fff', // Set a background color to see the shadow
-    borderRadius: 3, // Add border radius for a card-like appearance
+    elevation: 2,
+    backgroundColor: '#fff',
+    borderRadius: 3,
   },
   productImage: {
     width: 140,
@@ -223,25 +243,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'green',
   },
-
   mostPop:{
     borderRadius: 10,
     backgroundColor: 'white',
   },
-  // Hero banner
   heroBanner: {
     marginTop: 0,
     marginBottom: 16,
     borderRadius: 8,
-    overflow: 'hidden', // Ensure the border-radius works as expected
+    overflow: 'hidden',
   },
-
   heroBannerImage: {
     width: '100%',
     height: 150,
     resizeMode: 'cover',
   },
-
   heroBannerText: {
     position: 'absolute',
     top: 20,
@@ -250,7 +266,6 @@ const styles = StyleSheet.create({
     fontSize: 27,
     fontWeight: 'bold',
   },
-
   heroBannerButton: {
     position: 'absolute',
     bottom: 20,
@@ -260,13 +275,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 8,
   },
-
   heroBannerButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
-
   headerText1: {
     position: 'relative',
     top: 20,
@@ -277,9 +290,8 @@ const styles = StyleSheet.create({
     color: 'green',
     fontWeight: 'bold',
   },
-  
   iconGap: {
-    width: 10, // Adjust the width as needed
+    width: 10,
   },
   iconButtonsContainer: {
     flexDirection: 'row',
@@ -300,7 +312,6 @@ const styles = StyleSheet.create({
     borderColor: '#8AEAC0',
     backgroundColor:'#6F8D80',
   },
-  
   cartPreview: {
     position: 'absolute',
     bottom: 0,
@@ -311,6 +322,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderTopWidth: 1,
     borderTopColor: '#ccc',
+    elevation: 5,
+    zIndex: 999,
   },
 });
 

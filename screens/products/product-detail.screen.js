@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, Animated, StyleSheet } from 'react-native';
+import { View, Text, ImageBackground, Image, ScrollView, TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons'; // Import FontAwesome icons
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -54,6 +54,7 @@ const ProductDetailsScreen = ({ route, navigation }) => {
 
   return (
     <ScrollView style={styles.container}>
+    <ImageBackground source={{uri: product.image}} style={styles.background}>
       <Image source={{uri: product.image}} style={styles.productImage} resizeMode="cover" />
       <View style={styles.detailsContainer}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -88,16 +89,21 @@ const ProductDetailsScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         </Animated.View>
       </View>
+      </ImageBackground>      
     </ScrollView>
   );
 };
 
 const themeColors = {
   primary: '#2E7D32', // Green
-  secondary: '#FF5722', // Orange
+  secondary: '#6f8d80', // Orange
 };
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    resizeMode: 'cover',
+  },
   container: {
     flex: 1,
     backgroundColor: '#fff',
@@ -114,6 +120,7 @@ const styles = StyleSheet.create({
   },
   detailsContainer: {
     padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
   productName: {
     fontSize: 24,
