@@ -32,8 +32,8 @@ const App = () => {
       const phoneNumber = userInfo ? userInfo.user.phone : '0'; // Use '0' if no user info is found
 
       // Make an API request to check if the user is authenticated
-      const response = await axios.post('http://localhost/eatapp/eat-server/api/connectx', {
-      // const response = await axios.post('https://sms.mightyfinance.co.zm/api/connectx', {
+      // const response = await axios.post('http://localhost/eatapp/eat-server/api/connectx', {
+      const response = await axios.post('https://sms.mightyfinance.co.zm/api/connectx', {
         withCredentials: false, // Include credentials (cookies) in the request
         phone: phoneNumber,
       });

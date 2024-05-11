@@ -3,7 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const fetchProducts = async () => {
   try {
-    const response = await axios.get('http://localhost/eatapp/eat-server/api/products');
+    const response = await axios.get('https://sms.mightyfinance.co.zm/api/products');
+    // const response = await axios.get('http://localhost/eatapp/eat-server/api/products');
     // You may want to handle or log the response data differently based on your application's needs
     return response.data.products;
   } catch (error) {
