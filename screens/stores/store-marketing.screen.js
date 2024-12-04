@@ -1,82 +1,59 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, FlatList, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Animatable from 'react-native-animatable';
 
 const { width, height } = Dimensions.get('window');
 
-const StoreProducts = ({ navigation }) => {
-    const [products, setProducts] = useState([
-        { id: 1, name: 'Classic T-Shirt', sku: 'TS001', category: 'Apparel', stock: 50, price: 24.99, status: 'In Stock' },
-        { id: 2, name: 'Denim Jeans', sku: 'DN002', category: 'Bottoms', stock: 30, price: 59.99, status: 'Low Stock' },
-        { id: 3, name: 'Leather Jacket', sku: 'JK003', category: 'Outerwear', stock: 15, price: 129.99, status: 'Critical' },
+const StoreMarketing = ({ navigation }) => {
+    const [campaigns, setCampaigns] = useState([
+        { id: 1, name: 'Spring Sale', status: 'Active', budget: 5000 },
+        { id: 2, name: 'Summer Campaign', status: 'Paused', budget: 3000 },
+        { id: 3, name: 'Holiday Promotions', status: 'Active', budget: 7000 },
     ]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [filteredProducts, setFilteredProducts] = useState(products);
-    const [selectedProduct, setSelectedProduct] = useState(null);
+    const [selectedCampaign, setSelectedCampaign] = useState(null);
     const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
 
-    useEffect(() => {
-        const filtered = products.filter(product =>
-            product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            product.sku.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        setFilteredProducts(filtered);
-    }, [searchQuery]);
+    const filteredCampaigns = campaigns.filter(campaign =>
+        campaign.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'In Stock': return '#059669';
-            case 'Low Stock': return '#f97316';
-            case 'Critical': return '#ef4444';
-            default: return '#64748b';
-        }
-    };
-
-    const openProductDetails = (product) => {
-        setSelectedProduct(product);
+    const openCampaignDetails = (campaign) => {
+        setSelectedCampaign(campaign);
         setIsDetailModalVisible(true);
     };
 
-    const renderProductItem = ({ item }) => (
-        <TouchableOpacity style={styles.productItem} onPress={() => openProductDetails(item)}>
-            <View style={styles.productItemContent}>
-                <View style={[styles.productStatusIndicator, { backgroundColor: getStatusColor(item.status) }]} />
-                <View style={styles.productDetails}>
-                    <Text style={styles.productName}>{item.name}</Text>
-                    <Text style={styles.productSku}>SKU: {item.sku}</Text>
-                    <Text style={styles.productStock}>Stock: {item.stock} - <Text style={{ color: getStatusColor(item.status) }}>{item.status}</Text></Text>
-                </View>
-                <View style={styles.productPriceContainer}>
-                    <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
-                </View>
+    const renderCampaignItem = ({ item }) => (
+        <TouchableOpacity style={styles.campaignItem} onPress={() => openCampaignDetails(item)}>
+            <View style={styles.campaignItemContent}>
+                <Text style={styles.campaignName}>{item.name}</Text>
+                <Text style={[styles.campaignStatus, { color: item.status === 'Active' ? '#059669' : '#ef4444' }]}>{item.status}</Text>
+                <Text style={styles.campaignBudget}>Budget: ${item.budget}</Text>
             </View>
         </TouchableOpacity>
     );
 
-    const ProductDetailsModal = () => {
-        if (!selectedProduct) return null;
-        
+    const CampaignDetailsModal = () => {
+        if (!selectedCampaign) return null;
+
         return (
             <Modal animationType="slide" transparent={true} visible={isDetailModalVisible} onRequestClose={() => setIsDetailModalVisible(false)}>
                 <View style={styles.modalOverlay}>
                     <Animatable.View animation="fadeInUp" style={styles.modalContainer}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{selectedProduct.name}</Text>
+                            <Text style={styles.modalTitle}>{selectedCampaign.name}</Text>
                             <TouchableOpacity onPress={() => setIsDetailModalVisible(false)}>
                                 <Ionicons name="close" size={24} color="#1f2937" />
                             </TouchableOpacity>
                         </View>
                         <View style={styles.modalContent}>
-                            <Text>SKU: {selectedProduct.sku}</Text>
-                            <Text>Category: {selectedProduct.category}</Text>
-                            <Text>Price: ${selectedProduct.price.toFixed(2)}</Text>
-                            <Text>Stock Status: {selectedProduct.status}</Text>
+                            <Text>Status: {selectedCampaign.status}</Text>
+                            <Text>Budget: ${selectedCampaign.budget}</Text>
                         </View>
-                        <TouchableOpacity style={styles.modalActionButton} onPress={() => alert('Edit Product')}>
-                            <Text style={styles.modalActionButtonText}>Edit Product</Text>
+                        <TouchableOpacity style={styles.modalActionButton} onPress={() => alert('Edit Campaign')}>
+                            <Text style={styles.modalActionButtonText}>Edit Campaign</Text>
                         </TouchableOpacity>
                     </Animatable.View>
                 </View>
@@ -91,7 +68,7 @@ const StoreProducts = ({ navigation }) => {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#1f2937" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Store Products</Text>
+                <Text style={styles.headerTitle}>Marketing Management</Text>
                 <TouchableOpacity style={styles.headerButton}>
                     <MaterialCommunityIcons name="filter-outline" size={20} color="#1f2937" />
                 </TouchableOpacity>
@@ -101,7 +78,7 @@ const StoreProducts = ({ navigation }) => {
             <View style={styles.searchContainer}>
                 <Ionicons name="search" size={20} color="#64748b" />
                 <TextInput
-                    placeholder="Search products..."
+                    placeholder="Search campaigns..."
                     placeholderTextColor="#64748b"
                     style={styles.searchInput}
                     value={searchQuery}
@@ -112,17 +89,17 @@ const StoreProducts = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Product List */}
+            {/* Campaign List */}
             <FlatList
-                data={filteredProducts}
-                renderItem={renderProductItem}
+                data={filteredCampaigns}
+                renderItem={renderCampaignItem}
                 keyExtractor={(item) => item.id.toString()}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.productList}
+                contentContainerStyle={{ paddingBottom: 20 }}
             />
 
-            {/* Product Details Modal */}
-            <ProductDetailsModal />
+            {/* Campaign Details Modal */}
+            <CampaignDetailsModal />
         </SafeAreaView>
     );
 };
@@ -165,6 +142,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         marginVertical: 16,
         marginHorizontal: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        elevation: 2,
     },
     searchInput: {
         flexGrow: 1,
@@ -172,7 +154,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color:'#1f2937',
     },
-    productItem:{
+    campaignItem:{
        backgroundColor:'#fff',
        borderRadius :10,
        marginBottom :12,
@@ -182,42 +164,21 @@ const styles = StyleSheet.create({
        shadowRadius :3,
        elevation :2,
    },
-   productItemContent:{
-       flexDirection :'row',
-       alignItems:'center',
+   campaignItemContent:{
        padding :12,
    },
-   productStatusIndicator:{
-       width :8,
-       height :8,
-       borderRadius :4,
-       marginRight :12,
-   },
-   productDetails:{
-       flex :1,
-   },
-   productName:{
+   campaignName:{
        fontSize :15,
        fontWeight :'600',
        color :'#1f2937',
-       marginBottom :4,
    },
-   productSku:{
-       fontSize :12,
-       color :'#64748b',
-       marginBottom :4,
-   },
-   productStock:{
-       fontSize :12,
-       color :'#64748b',
-   },
-   productPriceContainer:{
-       alignItems:'flex-end'
-   },
-   productPrice:{
-       fontSize :15,
+   campaignStatus:{
+       fontSize :14,
        fontWeight :'600',
-       color :'#2563eb'
+   },
+   campaignBudget:{
+       fontSize :14,
+       color :'#64748b'
    },
    modalOverlay:{
       flex :1,
@@ -253,4 +214,4 @@ const styles = StyleSheet.create({
    }
 });
 
-export default StoreProducts;
+export default StoreMarketing;

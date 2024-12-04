@@ -1,160 +1,296 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { AntDesign } from '@expo/vector-icons';
 
-const MeScreen = ({ route }) => {
+const MeScreen = () => {
+  const donationStats = {
+    totalDonations: 47,
+    foodItemsShared: 156,
+    peopleHelped: 235,
+    activeListings: 3
+  };
+
+  const recentActivities = [
+    { type: 'donation', item: 'Canned Goods', date: '2 days ago', quantity: '5 boxes' },
+    { type: 'shared', item: 'Fresh Vegetables', date: '1 week ago', quantity: '3 bags' }
+  ];
+
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
+      {/* Profile Header */}
       <View style={styles.header}>
-        <Image source={require('../../../assets/profile/avatar.png')} style={styles.profilePicture} />
-        <Text style={styles.profileName}>John Doe</Text>
-        <Text style={styles.profileBio}>Web Developer | UI/UX Designer</Text>
+        <View style={styles.coverPhoto}>
+          <TouchableOpacity style={styles.settingsButton}>
+            <MaterialCommunityIcons name="cog" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.profileSection}>
+          <Image 
+            source={require('../../../assets/img/1.png')} 
+            style={styles.profilePicture} 
+          />
+          <View style={styles.badgeContainer}>
+            <MaterialCommunityIcons name="check-decagram" size={24} color="#4CAF50" />
+          </View>
+          <Text style={styles.profileName}>John Doe</Text>
+          <Text style={styles.profileBadge}>Verified Donor</Text>
+          <Text style={styles.profileBio}>Helping reduce food waste and hunger</Text>
+        </View>
       </View>
 
-      <View style={styles.links}>
-        <TouchableOpacity onPress={() => alert('Change Password')} style={styles.linkItem}>
-          <MaterialCommunityIcons name="lock" style={styles.linkIcon} />
+      {/* Quick Actions */}
+      <View style={styles.quickActions}>
+        <TouchableOpacity style={styles.actionButton}>
+          <MaterialCommunityIcons name="food-apple" size={24} color="#fff" />
+          <Text style={styles.actionText}>Share Food</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => alert('Edit Profile')} style={styles.linkItem}>
-          <MaterialCommunityIcons name="account-edit-outline" size={24} style={styles.linkIcon} />
+        <TouchableOpacity style={styles.actionButton}>
+          <MaterialCommunityIcons name="hand-heart" size={24} color="#fff" />
+          <Text style={styles.actionText}>Donate</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => alert('Upload Profile')} style={styles.linkItem}>
-          {/* <Icon name="cloud-upload-alt"  /> */}
-          <AntDesign name="picture" style={styles.linkIcon} size={24} />
+        <TouchableOpacity style={styles.actionButton}>
+          <MaterialCommunityIcons name="history" size={24} color="#fff" />
+          <Text style={styles.actionText}>History</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.details}>
-        <DetailItem label="Location" value="New York, USA" />
-        <DetailItem label="Email" value="john.doe@example.com" />
-        <DetailItem label="Website" value="www.example.com" onPress={() => alert('Visit website')} />
+      {/* Stats Section */}
+      <View style={styles.statsContainer}>
+        <View style={styles.statsRow}>
+          <StatItem 
+            value={donationStats.totalDonations} 
+            label="Donations"
+            icon="gift"
+          />
+          <StatItem 
+            value={donationStats.foodItemsShared} 
+            label="Items Shared"
+            icon="food"
+          />
+        </View>
+        <View style={styles.statsRow}>
+          <StatItem 
+            value={donationStats.peopleHelped} 
+            label="People Helped"
+            icon="account-group"
+          />
+          <StatItem 
+            value={donationStats.activeListings} 
+            label="Active Listings"
+            icon="clipboard-list"
+          />
+        </View>
       </View>
 
-      {/* <TouchableOpacity style={styles.editButton} onPress={() => alert('Edit Profile')}>
-        <Text style={styles.editButtonText}>Edit Profile</Text>
-      </TouchableOpacity> */}
-    </View>
+      {/* Recent Activity */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Recent Activity</Text>
+        {recentActivities.map((activity, index) => (
+          <View key={index} style={styles.activityItem}>
+            <MaterialCommunityIcons 
+              name={activity.type === 'donation' ? 'gift' : 'food-apple'} 
+              size={24} 
+              color="#4CAF50" 
+            />
+            <View style={styles.activityInfo}>
+              <Text style={styles.activityTitle}>{activity.item}</Text>
+              <Text style={styles.activityMeta}>
+                {activity.quantity} • {activity.date}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* Contact Information */}
+      <View style={styles.sectionContainer}>
+        <Text style={styles.sectionTitle}>Contact Information</Text>
+        <DetailItem 
+          icon="map-marker" 
+          label="Location" 
+          value="New York, USA" 
+        />
+        <DetailItem 
+          icon="email" 
+          label="Email" 
+          value="john.doe@example.com" 
+        />
+        <DetailItem 
+          icon="phone" 
+          label="Phone" 
+          value="+1 (555) 123-4567" 
+        />
+      </View>
+    </ScrollView>
   );
 };
 
-const DetailItem = ({ label, value, onPress }) => (
+const StatItem = ({ value, label, icon }) => (
+  <View style={styles.statItem}>
+    <MaterialCommunityIcons name={icon} size={24} color="#4CAF50" />
+    <Text style={styles.statValue}>{value}</Text>
+    <Text style={styles.statLabel}>{label}</Text>
+  </View>
+);
+
+const DetailItem = ({ icon, label, value }) => (
   <View style={styles.detailItem}>
-    <Text style={styles.detailLabel}>{label}:</Text>
-    {onPress ? (
-      <TouchableOpacity onPress={onPress}>
-        <Text style={[styles.detailValue, styles.link]}>{value}</Text>
-      </TouchableOpacity>
-    ) : (
+    <MaterialCommunityIcons name={icon} size={20} color="#4CAF50" />
+    <View style={styles.detailContent}>
+      <Text style={styles.detailLabel}>{label}</Text>
       <Text style={styles.detailValue}>{value}</Text>
-    )}
+    </View>
   </View>
 );
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#f5f5f5',
   },
   header: {
-    alignItems: 'center',
+    backgroundColor: '#fff',
     marginBottom: 20,
   },
-  profilePicture: {
-    width: 150,
+  coverPhoto: {
     height: 150,
-    borderRadius: 75,
-    marginBottom: 10,
-    borderWidth: 3,
-    borderColor: '#d0db34',
-    shadowColor: '#2c3e50',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.5,
-    shadowRadius: 5,
-    elevation: 5,
+    backgroundColor: '#8FC826',
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    padding: 15,
+  },
+  settingsButton: {
+    padding: 8,
+  },
+  profileSection: {
+    alignItems: 'center',
+    paddingBottom: 20,
+    marginTop: -50,
+  },
+  profilePicture: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 4,
+    borderColor: '#fff',
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: 60,
+    right: '35%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 2,
   },
   profileName: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#6d8246',
+    color: '#333',
+    marginTop: 10,
+  },
+  profileBadge: {
+    fontSize: 14,
+    color: '#8FC826',
+    fontWeight: '600',
+    marginTop: 4,
   },
   profileBio: {
-    fontSize: 16,
-    color: '#7f8c8d',
-    textAlign: 'center',
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
   },
-  details: {
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 20,
     marginBottom: 20,
-    width: '100%',
+  },
+  actionButton: {
+    backgroundColor: '#8FC826',
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    width: '30%',
+  },
+  actionText: {
+    color: '#fff',
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  statsContainer: {
     backgroundColor: '#fff',
     padding: 15,
-    borderRadius: 10,
-    shadowColor: '#2c3e50',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
+    marginBottom: 20,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 15,
+  },
+  statItem: {
+    alignItems: 'center',
+    width: '45%',
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 5,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  sectionContainer: {
+    backgroundColor: '#fff',
+    padding: 15,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  activityInfo: {
+    marginLeft: 15,
+    flex: 1,
+  },
+  activityTitle: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  activityMeta: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
   },
   detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 15,
+  },
+  detailContent: {
+    marginLeft: 15,
+    flex: 1,
   },
   detailLabel: {
-    fontWeight: 'bold',
-    marginRight: 5,
-    color: '#2c3e50',
+    fontSize: 14,
+    color: '#666',
   },
   detailValue: {
-    color: '#555',
-  },
-  link: {
-    color: '#8fc826',
-    textDecorationLine: 'underline',
-  },
-  editButton: {
-    backgroundColor: '#8fc826',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    width: '100%',
-  },
-  editButtonText: {
-    color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
-  },
-
-  //   Links
-  links: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 20,
-  },
-  linkItem: {
-    flex: 1,
-    padding: 10,
-    backgroundColor: '#8fc826',
-    borderRadius: 8,
-    marginRight: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  linkIcon: {
-    color: '#fff',
-    fontSize: 20,
-    marginRight: 5,
-  },
-  linkText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 2,
   },
 });
 

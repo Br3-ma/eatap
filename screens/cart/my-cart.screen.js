@@ -1,35 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { View, ImageBackground, Image, Text, FlatList, TouchableOpacity, Modal, StyleSheet } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
+import { View, Text, FlatList, TouchableOpacity, Modal, StyleSheet, SafeAreaView, Animated } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Contacts from 'expo-contacts';
-
-const backgroundImage = require('../../assets/a.jpg');
+import CartItem from '../../components/cart-item';  // Import the CartItem component
+import { BlurView } from 'expo-blur';
 
 const CartScreen = ({ navigation }) => {
   const [cartItems, setCartItems] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [scrollY] = useState(new Animated.Value(0));
 
   useEffect(() => {
-    const fetchCartItems = async () => {
-      try {
-        const storedItems = await AsyncStorage.getItem('cartItems');
-        if (storedItems) {
-          const parsedItems = JSON.parse(storedItems).map(item => ({
-            ...item,
-            price: parseFloat(item.price) || 0,
-            quantity: parseInt(item.quantity) || 1
-          }));
-          consolidateItems(parsedItems);
-        }
-      } catch (error) {
-        console.error('Error fetching cart items:', error);
-      }
-    };
-
     fetchCartItems();
   }, []);
+
+  const fetchCartItems = async () => {
+    try {
+      const storedItems = await AsyncStorage.getItem('cartItems');
+      if (storedItems) {
+        const parsedItems = JSON.parse(storedItems).map(item => ({
+          ...item,
+          price: parseFloat(item.price) || 0,
+          quantity: parseInt(item.quantity) || 1
+        }));
+        consolidateItems(parsedItems);
+      }
+    } catch (error) {
+      console.error('Error fetching cart items:', error);
+    }
+  };
 
   const consolidateItems = (items) => {
     const consolidated = items.reduce((acc, item) => {
@@ -50,7 +51,6 @@ const CartScreen = ({ navigation }) => {
       const { data } = await Contacts.getContactsAsync({
         fields: [Contacts.Fields.PhoneNumbers],
       });
-
       if (data.length > 0) {
         setContacts(data);
         setModalVisible(true);
@@ -59,254 +59,362 @@ const CartScreen = ({ navigation }) => {
   };
 
   const selectContact = async (contact) => {
-    if (contact.phoneNumbers && contact.phoneNumbers.length > 0) {
+    if (contact.phoneNumbers?.length > 0) {
       await AsyncStorage.setItem('collector', contact.phoneNumbers[0].number);
       setModalVisible(false);
       navigation.navigate('Payment');
     }
   };
 
-  const handleIncreaseQuantity = (index) => {
+  const handleQuantityChange = (index, change) => {
     const updatedItems = [...cartItems];
-    updatedItems[index].quantity += 1;
-    AsyncStorage.setItem('cartItems', JSON.stringify(updatedItems));
-    consolidateItems(updatedItems);
-  };
+    const newQuantity = updatedItems[index].quantity + change;
 
-  const handleDecreaseQuantity = (index) => {
-    const updatedItems = [...cartItems];
-    if (updatedItems[index].quantity > 1) {
-      updatedItems[index].quantity -= 1;
-      AsyncStorage.setItem('cartItems', JSON.stringify(updatedItems));
-      consolidateItems(updatedItems);
+    if (newQuantity > 0) {
+      updatedItems[index].quantity = newQuantity;
+    } else {
+      updatedItems.splice(index, 1);
     }
-  };
 
-  const handleDeleteItem = (index) => {
-    const updatedItems = [...cartItems];
-    updatedItems.splice(index, 1);
     AsyncStorage.setItem('cartItems', JSON.stringify(updatedItems));
     consolidateItems(updatedItems);
   };
 
   const totalPrice = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const serviceFee = 0.05 * totalPrice;
+  const serviceFee = totalPrice * 0.05;
+  const finalTotal = totalPrice + serviceFee;
+
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [1, 0.9],
+    extrapolate: 'clamp',
+  });
+
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0, -20],
+    extrapolate: 'clamp',
+  });
 
   return (
-    <ImageBackground source={backgroundImage} style={styles.background}>
-      <View style={styles.overlay}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <FontAwesome name="angle-left" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.title}>My Cart</Text>
-        <FlatList
-          data={cartItems}
-          renderItem={({ item, index }) => (
-            <View style={styles.card}>
-              <Image source={{ uri: item.image }} style={styles.productImage} />
-              <View style={styles.itemDetails}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemPrice}>K{item.price.toFixed(2)}</Text>
-                <View style={styles.buttonGroup}>
-                  <TouchableOpacity onPress={() => handleDecreaseQuantity(index)} style={styles.minusButton}>
-                    <FontAwesome name="minus-circle" size={24} color="#FF6347" />
-                  </TouchableOpacity>
-                  <Text style={styles.quantity}>{item.quantity}</Text>
-                  <TouchableOpacity onPress={() => handleIncreaseQuantity(index)} style={styles.plusButton}>
-                    <FontAwesome name="plus-circle" size={24} color="#4682B4" />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDeleteItem(index)} style={styles.deleteButton}>
-                    <FontAwesome name="trash" size={24} color="white" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          )}
-          keyExtractor={(item, index) => `${item.name}-${index}`}
-          ListEmptyComponent={<Text style={styles.emptyCart}>Your cart is empty</Text>}
-        />
-        <View style={styles.bottomToolbar}>
-          <Text style={styles.total}>Total: K{totalPrice.toFixed(2)}</Text>
-          <Text style={styles.serviceFee}>Service Fee: K{serviceFee.toFixed(2)}</Text>
-          <TouchableOpacity style={styles.buyNowButton} onPress={handleShowContacts}>
-            <Text style={styles.buyNowText}>Select Contact</Text>
-          </TouchableOpacity>
-        </View>
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={() => {
-            setModalVisible(!modalVisible);
-          }}
+    <SafeAreaView style={styles.container}>
+      {/* Animated Header with Totals */}
+      <Animated.View 
+        style={[
+          styles.headerContainer,
+          {
+            opacity: headerOpacity,
+            transform: [{ translateY: headerTranslateY }]
+          }
+        ]}
+      >
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
         >
-          <View style={styles.centeredView}>
-            <View style={styles.modalView}>
-              <Text style={styles.modalText}>Select a Contact</Text>
-              <FlatList
-                data={contacts}
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={({ item }) => (
-                  <TouchableOpacity style={styles.contactItem} onPress={() => selectContact(item)}>
-                    <Text style={styles.contactName}>{item.name}</Text>
-                  </TouchableOpacity>
-                )}
-              />
-              <TouchableOpacity
-                style={[styles.button, styles.buttonClose]}
-                onPress={() => setModalVisible(!modalVisible)}
-              >
-                <Text style={styles.textStyle}>Close</Text>
-              </TouchableOpacity>
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
+        </TouchableOpacity>
+
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Your Cart</Text>
+          <Text style={styles.itemCount}>{cartItems.length} items</Text>
+          
+          <View style={styles.totalsSummary}>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Subtotal</Text>
+              <Text style={styles.totalValue}>K{totalPrice.toFixed(2)}</Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Service Fee (5%)</Text>
+              <Text style={styles.totalValue}>K{serviceFee.toFixed(2)}</Text>
+            </View>
+            <View style={[styles.totalRow, styles.finalTotalRow]}>
+              <Text style={styles.finalTotalLabel}>Total</Text>
+              <Text style={styles.finalTotalValue}>K{finalTotal.toFixed(2)}</Text>
             </View>
           </View>
-        </Modal>
+        </View>
+      </Animated.View>
+
+      {/* Main Content */}
+      <View style={styles.mainContent}>
+        {cartItems.length > 0 ? (
+          <Animated.FlatList
+            data={cartItems}
+            renderItem={({ item, index }) => (
+              <CartItem 
+                item={item}
+                index={index}
+                handleQuantityChange={handleQuantityChange}
+                scrollY={scrollY}
+              />
+            )}
+            keyExtractor={(item, index) => `${item.name}-${index}`}
+            contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+              { useNativeDriver: true }
+            )}
+          />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons name="cart-off-outline" size={80} color="#ddd" />
+            <Text style={styles.emptyText}>Your cart is empty</Text>
+            <TouchableOpacity 
+              style={styles.shopButton}
+              onPress={() => navigation.navigate('Home')}
+            >
+              <Text style={styles.shopButtonText}>Discover Products</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
-    </ImageBackground>
+
+      {/* Floating Checkout Button */}
+      {cartItems.length > 0 && (
+        <BlurView intensity={100} style={styles.checkoutContainer}>
+          <TouchableOpacity 
+            style={styles.checkoutButton}
+            onPress={handleShowContacts}
+          >
+            <MaterialCommunityIcons name="arrow-right" size={24} color="#4e8e87" />
+            <Text style={styles.checkoutText}>Proceed to Checkout</Text>
+          </TouchableOpacity>
+        </BlurView>
+      )}
+
+      {/* Contacts Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Payment Collector</Text>
+            <TouchableOpacity 
+              onPress={() => setModalVisible(false)}
+              style={styles.closeButton}
+            >
+              <MaterialCommunityIcons name="close" size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={contacts}
+            renderItem={({ item }) => (
+              <TouchableOpacity 
+                style={styles.contactItem}
+                onPress={() => selectContact(item)}
+              >
+                <View style={styles.contactAvatar}>
+                  <Text style={styles.avatarText}>
+                    {item.name[0]}
+                  </Text>
+                </View>
+                <View style={styles.contactInfo}>
+                  <Text style={styles.contactName}>{item.name}</Text>
+                  {item.phoneNumbers && item.phoneNumbers[0] && (
+                    <Text style={styles.contactPhone}>{item.phoneNumbers[0].number}</Text>
+                  )}
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={24} color="#ccc" />
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.id}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
+          />
+        </SafeAreaView>
+      </Modal>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  background: {
+  container: {
     flex: 1,
-    resizeMode: 'cover',
+    backgroundColor: '#f8f9fa',
   },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 51, 0, 0.7)',
-    padding: 20,
+  headerContainer: {
+    backgroundColor: '#afc119',
+    paddingTop: 20,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+  },
+  headerContent: {
+    paddingHorizontal: 20,
   },
   backButton: {
-    position: 'absolute',
-    top: 20,
-    left: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 10,
-    marginTop: 20,  // Adjusted for better alignment
-  },
-  card: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
-    alignItems: 'center',  // Align items in the center
-  },
-  productImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 15,  // Added space between image and text
-  },
-  itemDetails: {
-    flex: 1,  // Take available space
-  },
-  itemName: {
-    fontSize: 18,
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  itemPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 5,  // Add space above the button group
-  },
-  buttonGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  minusButton: {
-    marginRight: 10,
-  },
-  plusButton: {
+    padding: 12,
     marginLeft: 10,
   },
-  deleteButton: {
-    marginLeft: 20,
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
   },
-  quantity: {
+  itemCount: {
     fontSize: 16,
-    color: 'white',
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 20,
   },
-  emptyCart: {
-    color: 'white',
+  totalsSummary: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 16,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  totalLabel: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 14,
+  },
+  totalValue: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  finalTotalRow: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  finalTotalLabel: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  finalTotalValue: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  mainContent: {
+    flex: 1,
+    marginTop: -20,
+    backgroundColor: '#f8f9fa',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingTop: 20,
+  },
+  listContainer: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 100,
+  },
+  emptyText: {
+    fontSize: 20,
+    color: '#666',
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  shopButton: {
+    backgroundColor: '#ff0000',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 30,
+    elevation: 4,
+  },
+  shopButtonText: {
     fontSize: 16,
-    textAlign: 'center',
-    marginTop: 20,
+    color: '#fff',
+    fontWeight: 'bold',
   },
-  bottomToolbar: {
+  checkoutContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  checkoutButton: {
+    backgroundColor: '#f7ff00',
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  total: {
-    fontSize: 18,
-    color: 'white',
-  },
-  serviceFee: {
-    fontSize: 16,
-    color: 'white',
-    marginBottom: 10,
-  },
-  buyNowButton: {
-    backgroundColor: 'green',
-    padding: 12,
-    borderRadius: 5,
-  },
-  buyNowText: {
-    fontSize: 18,
-    color: 'white',
-    textAlign: 'center',
-  },
-  centeredView: {
-    flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 22,
+    padding: 16,
+    borderRadius: 30,
+    elevation: 4,
   },
-  modalView: {
-    margin: 20,
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 35,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5
+  checkoutText: {
+    fontSize: 18,
+    color: '#4e8e87',
+    fontWeight: 'normal',
+    marginLeft: 8,
   },
-  modalText: {
-    marginBottom: 15,
-    textAlign: 'center'
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  closeButton: {
+    padding: 8,
   },
   contactItem: {
-    padding: 10,
-    marginVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  contactAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#c6e81a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  contactInfo: {
+    flex: 1,
   },
   contactName: {
     fontSize: 16,
-    color: 'black',
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 4,
   },
-  buttonClose: {
-    backgroundColor: '#2196F3',
+  contactPhone: {
+    fontSize: 14,
+    color: '#666',
   },
-  textStyle: {
-    color: 'white',
-    fontWeight: 'bold',
-    textAlign: 'center',
+  separator: {
+    height: 1,
+    backgroundColor: '#eee',
+    marginLeft: 82,
   },
 });
 

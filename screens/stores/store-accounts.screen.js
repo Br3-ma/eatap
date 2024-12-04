@@ -1,82 +1,65 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, FlatList, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Animatable from 'react-native-animatable';
 
 const { width, height } = Dimensions.get('window');
 
-const StoreProducts = ({ navigation }) => {
-    const [products, setProducts] = useState([
-        { id: 1, name: 'Classic T-Shirt', sku: 'TS001', category: 'Apparel', stock: 50, price: 24.99, status: 'In Stock' },
-        { id: 2, name: 'Denim Jeans', sku: 'DN002', category: 'Bottoms', stock: 30, price: 59.99, status: 'Low Stock' },
-        { id: 3, name: 'Leather Jacket', sku: 'JK003', category: 'Outerwear', stock: 15, price: 129.99, status: 'Critical' },
+const StoreAccounts = ({ navigation }) => {
+    const [orders, setOrders] = useState([
+        { id: 1, date: '2024-12-01', product: 'Classic T-Shirt', amount: 24.99, status: 'Completed' },
+        { id: 2, date: '2024-11-28', product: 'Denim Jeans', amount: 59.99, status: 'Pending' },
+        { id: 3, date: '2024-11-25', product: 'Leather Jacket', amount: 129.99, status: 'Shipped' },
+        { id: 4, date: '2024-11-20', product: 'Sneakers', amount: 89.99, status: 'Completed' },
     ]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [filteredProducts, setFilteredProducts] = useState(products);
-    const [selectedProduct, setSelectedProduct] = useState(null);
+    const [selectedOrder, setSelectedOrder] = useState(null);
     const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
 
-    useEffect(() => {
-        const filtered = products.filter(product =>
-            product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            product.sku.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        setFilteredProducts(filtered);
-    }, [searchQuery]);
+    const filteredOrders = orders.filter(order =>
+        order.product.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'In Stock': return '#059669';
-            case 'Low Stock': return '#f97316';
-            case 'Critical': return '#ef4444';
-            default: return '#64748b';
-        }
-    };
-
-    const openProductDetails = (product) => {
-        setSelectedProduct(product);
+    const openOrderDetails = (order) => {
+        setSelectedOrder(order);
         setIsDetailModalVisible(true);
     };
 
-    const renderProductItem = ({ item }) => (
-        <TouchableOpacity style={styles.productItem} onPress={() => openProductDetails(item)}>
-            <View style={styles.productItemContent}>
-                <View style={[styles.productStatusIndicator, { backgroundColor: getStatusColor(item.status) }]} />
-                <View style={styles.productDetails}>
-                    <Text style={styles.productName}>{item.name}</Text>
-                    <Text style={styles.productSku}>SKU: {item.sku}</Text>
-                    <Text style={styles.productStock}>Stock: {item.stock} - <Text style={{ color: getStatusColor(item.status) }}>{item.status}</Text></Text>
-                </View>
-                <View style={styles.productPriceContainer}>
-                    <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
-                </View>
+    const renderOrderItem = ({ item }) => (
+        <TouchableOpacity style={styles.orderItem} onPress={() => openOrderDetails(item)}>
+            <View style={styles.orderItemContent}>
+                <Text style={styles.orderDate}>{item.date}</Text>
+                <Text style={styles.orderProduct}>{item.product}</Text>
+                <Text style={[styles.orderAmount, item.status === 'Completed' ? styles.completed : item.status === 'Pending' ? styles.pending : styles.shipped]}>
+                    ${item.amount.toFixed(2)}
+                </Text>
+                <Text style={[styles.orderStatus]}>{item.status}</Text>
             </View>
         </TouchableOpacity>
     );
 
-    const ProductDetailsModal = () => {
-        if (!selectedProduct) return null;
-        
+    const OrderDetailsModal = () => {
+        if (!selectedOrder) return null;
+
         return (
             <Modal animationType="slide" transparent={true} visible={isDetailModalVisible} onRequestClose={() => setIsDetailModalVisible(false)}>
                 <View style={styles.modalOverlay}>
                     <Animatable.View animation="fadeInUp" style={styles.modalContainer}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{selectedProduct.name}</Text>
+                            <Text style={styles.modalTitle}>Order Details</Text>
                             <TouchableOpacity onPress={() => setIsDetailModalVisible(false)}>
                                 <Ionicons name="close" size={24} color="#1f2937" />
                             </TouchableOpacity>
                         </View>
                         <View style={styles.modalContent}>
-                            <Text>SKU: {selectedProduct.sku}</Text>
-                            <Text>Category: {selectedProduct.category}</Text>
-                            <Text>Price: ${selectedProduct.price.toFixed(2)}</Text>
-                            <Text>Stock Status: {selectedProduct.status}</Text>
+                            <Text>Date: {selectedOrder.date}</Text>
+                            <Text>Product: {selectedOrder.product}</Text>
+                            <Text>Amount: ${selectedOrder.amount.toFixed(2)}</Text>
+                            <Text>Status: {selectedOrder.status}</Text>
                         </View>
-                        <TouchableOpacity style={styles.modalActionButton} onPress={() => alert('Edit Product')}>
-                            <Text style={styles.modalActionButtonText}>Edit Product</Text>
+                        <TouchableOpacity style={styles.modalActionButton} onPress={() => alert('Edit Order')}>
+                            <Text style={styles.modalActionButtonText}>Edit Order</Text>
                         </TouchableOpacity>
                     </Animatable.View>
                 </View>
@@ -91,7 +74,7 @@ const StoreProducts = ({ navigation }) => {
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#1f2937" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Store Products</Text>
+                <Text style={styles.headerTitle}>Store Orders</Text>
                 <TouchableOpacity style={styles.headerButton}>
                     <MaterialCommunityIcons name="filter-outline" size={20} color="#1f2937" />
                 </TouchableOpacity>
@@ -101,7 +84,7 @@ const StoreProducts = ({ navigation }) => {
             <View style={styles.searchContainer}>
                 <Ionicons name="search" size={20} color="#64748b" />
                 <TextInput
-                    placeholder="Search products..."
+                    placeholder="Search orders..."
                     placeholderTextColor="#64748b"
                     style={styles.searchInput}
                     value={searchQuery}
@@ -112,17 +95,17 @@ const StoreProducts = ({ navigation }) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Product List */}
+            {/* Orders List */}
             <FlatList
-                data={filteredProducts}
-                renderItem={renderProductItem}
+                data={filteredOrders}
+                renderItem={renderOrderItem}
                 keyExtractor={(item) => item.id.toString()}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.productList}
+                contentContainerStyle={{ paddingBottom: 20 }}
             />
 
-            {/* Product Details Modal */}
-            <ProductDetailsModal />
+            {/* Order Details Modal */}
+            <OrderDetailsModal />
         </SafeAreaView>
     );
 };
@@ -165,6 +148,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         marginVertical: 16,
         marginHorizontal: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        elevation: 2,
     },
     searchInput: {
         flexGrow: 1,
@@ -172,7 +160,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color:'#1f2937',
     },
-    productItem:{
+    orderItem:{
        backgroundColor:'#fff',
        borderRadius :10,
        marginBottom :12,
@@ -182,42 +170,34 @@ const styles = StyleSheet.create({
        shadowRadius :3,
        elevation :2,
    },
-   productItemContent:{
-       flexDirection :'row',
-       alignItems:'center',
+   orderItemContent:{
        padding :12,
    },
-   productStatusIndicator:{
-       width :8,
-       height :8,
-       borderRadius :4,
-       marginRight :12,
+   orderDate:{
+       fontSize :14,
+       color :'#64748b',
    },
-   productDetails:{
-       flex :1,
-   },
-   productName:{
+   orderProduct:{
        fontSize :15,
        fontWeight :'600',
        color :'#1f2937',
-       marginBottom :4,
    },
-   productSku:{
-       fontSize :12,
-       color :'#64748b',
-       marginBottom :4,
-   },
-   productStock:{
-       fontSize :12,
-       color :'#64748b',
-   },
-   productPriceContainer:{
-       alignItems:'flex-end'
-   },
-   productPrice:{
+   orderAmount:{
        fontSize :15,
        fontWeight :'600',
-       color :'#2563eb'
+   },
+   completed:{
+       color:'#059669'
+   },
+   pending:{
+       color:'#f97316'
+   },
+   shipped:{
+       color:'#3b82f6'
+   },
+   orderStatus:{
+       fontSize :14,
+       marginTop :4
    },
    modalOverlay:{
       flex :1,
@@ -253,4 +233,4 @@ const styles = StyleSheet.create({
    }
 });
 
-export default StoreProducts;
+export default StoreAccounts;

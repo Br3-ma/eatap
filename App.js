@@ -12,7 +12,19 @@ import ContactsPermissions from './screens/onboarding/permissions.screen';
 import SplashScreen from './screens/splash.screen';
 import MainScreen from './screens/main.screen';
 import CartScreen from './screens/cart/my-cart.screen';
+import MyStore from './screens/stores/store.screen';
+import StoreProducts from './screens/stores/store-products.screen';
+import StoreAccounts from './screens/stores/store-accounts.screen';
+
+import QuickSale from './screens/stores/pos.screen';
+import StoreMarketing from './screens/stores/store-marketing.screen';
+import Stock from './screens/stores/stock.screen';
+import AddProduct from './screens/stores/store-add-product.screen';
+import StoreCreateScreen from './screens/stores/store-create.screen';
 import ProductDetails from './screens/products/product-detail.screen';
+
+
+import { API_BASE_URL } from './confg/conf';
 
 const Stack = createStackNavigator();
 
@@ -33,7 +45,7 @@ const App = () => {
 
       // Make an API request to check if the user is authenticated
       // const response = await axios.post('http://localhost/eatapp/eat-server/api/connectx', {
-      const response = await axios.post('https://sms.mightyfinance.co.zm/api/connectx', {
+      const response = await axios.post(`${API_BASE_URL}/connectx`, {
         withCredentials: false, // Include credentials (cookies) in the request
         phone: phoneNumber,
       });
@@ -64,6 +76,15 @@ const App = () => {
           <Stack.Screen name="Main" component={MainScreen} />
           <Stack.Screen name="Cart" component={CartScreen} />
           <Stack.Screen name="ProductDetails" component={ProductDetails} />
+          <Stack.Screen name="CreateStore" component={StoreCreateScreen} />
+          <Stack.Screen name="MyStore" component={MyStore} />
+          <Stack.Screen name="AddProduct" component={AddProduct} />
+          <Stack.Screen name="QuickSale" component={QuickSale} />
+          <Stack.Screen name="Stock" component={Stock} />
+          <Stack.Screen name="Products" component={StoreProducts} />
+          <Stack.Screen name="Marketing" component={StoreMarketing} />
+          <Stack.Screen name="Accounts" component={StoreAccounts} />
+          
         </Stack.Navigator>
       ) : (
         <Stack.Navigator initialRouteName="RegisterByOTP" headerMode="none">

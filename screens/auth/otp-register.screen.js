@@ -16,7 +16,7 @@ const RegisterByOTPScreen = ({ navigation }) => {
     switch (step) {
       case 1:
           try {
-            await axios.post('https://sms.mightyfinance.co.zm/api/signup/request-otp', { phoneNumber });
+            await axios.post('http://localhost/eat-app-server/api/signup/request-otp', { phoneNumber });
             setStep(step + 1);
           } catch (error) {
             console.error('Request OTP Error:', error);
@@ -24,7 +24,7 @@ const RegisterByOTPScreen = ({ navigation }) => {
         break;
       case 2:
           try {
-            await axios.post('https://sms.mightyfinance.co.zm/api/signup/verify-otp', { otp });
+            await axios.post('http://localhost/eat-app-server/api/signup/verify-otp', { otp });
             setStep(step + 1);
           } catch (error) {
             console.error('Verify OTP Error:', error);
@@ -32,7 +32,7 @@ const RegisterByOTPScreen = ({ navigation }) => {
         break;
       case 3:
           try {
-            const response = await axios.post('https://sms.mightyfinance.co.zm/api/signup/user-info', {
+            const response = await axios.post('http://localhost/eat-app-server/api/signup/user-info', {
               fullname: name,
               phoneNumber,
             });
