@@ -1,28 +1,41 @@
-import React, { useState } from 'react';
-import { TouchableOpacity, View, StyleSheet, Text, Image, Dimensions, Animated } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { TouchableOpacity, View, Text, Image, Dimensions, Animated, Pressable } from 'react-native';
 import { AntDesign, MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { addToCart } from '../controllers/cart/cartController';
 
+const { width } = Dimensions.get('window');
+const ITEM_WIDTH = width * 0.465;
+
 const RenderProductItem = ({ item, navigation }) => {
     const [liked, setLiked] = useState(false);
-    const [scaleValue] = useState(new Animated.Value(1));
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+    const likeScale = useRef(new Animated.Value(1)).current;
 
-    const handlePress = () => {
-        // Animate press
+    const animatePress = (scale) => {
+        Animated.spring(scaleAnim, {
+            toValue: scale,
+            friction: 8,
+            tension: 40,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const animateLike = () => {
+        setLiked(!liked);
         Animated.sequence([
-            Animated.timing(scaleValue, {
-                toValue: 0.95,
-                duration: 100,
+            Animated.spring(likeScale, {
+                toValue: 1.3,
+                friction: 5,
+                tension: 40,
                 useNativeDriver: true,
             }),
-            Animated.timing(scaleValue, {
+            Animated.spring(likeScale, {
                 toValue: 1,
-                duration: 100,
+                friction: 5,
+                tension: 40,
                 useNativeDriver: true,
             }),
         ]).start();
-        
-        navigation.navigate('ProductDetails', { product: item });
     };
 
     const renderStars = (rating) => {
@@ -32,162 +45,174 @@ const RenderProductItem = ({ item, navigation }) => {
 
         for (let i = 0; i < 5; i++) {
             if (i < fullStars) {
-                stars.push(<MaterialIcons key={`star-${i}`} name="star" size={16} color="#FFD700" />);
+                stars.push(
+                    <MaterialIcons key={`star-${i}`} name="star" size={12} color="#FFB800" />
+                );
             } else if (i === fullStars && hasHalfStar) {
-                stars.push(<MaterialIcons key={`star-${i}`} name="star-half" size={16} color="#FFD700" />);
+                stars.push(
+                    <MaterialIcons key={`star-${i}`} name="star-half" size={12} color="#FFB800" />
+                );
             } else {
-                stars.push(<MaterialIcons key={`star-${i}`} name="star-outline" size={16} color="#FFD700" />);
+                stars.push(
+                    <MaterialIcons key={`star-${i}`} name="star-outline" size={12} color="#FFB800" />
+                );
             }
         }
         return stars;
     };
 
     return (
-        <Animated.View style={[styles.container, { transform: [{ scale: scaleValue }] }]}>
-            <TouchableOpacity 
-                style={styles.productContainer} 
-                onPress={handlePress}
-                activeOpacity={0.9}
+        <Animated.View style={[styles.container, { transform: [{ scale: scaleAnim }] }]}>
+            <Pressable
+                onPressIn={() => animatePress(0.97)}
+                onPressOut={() => animatePress(1)}
+                onPress={() => navigation.navigate('ProductDetails', { product: item })}
+                style={styles.productContainer}
             >
-                <View style={styles.imageContainer}>
-                    <Image 
-                        source={{ uri: item.image }} 
-                        style={styles.productImage} 
+                <View style={styles.imageWrapper}>
+                    <Image
+                        source={{ uri: item.image }}
+                        style={styles.productImage}
                         resizeMode="cover"
                     />
-                    {item.discount && (
+                    <Animated.View 
+                        style={[
+                            styles.favoriteButton,
+                            { transform: [{ scale: likeScale }] }
+                        ]}
+                    >
+                        <TouchableOpacity
+                            onPress={animateLike}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        >
+                            <AntDesign
+                                name={liked ? "heart" : "hearto"}
+                                size={18}
+                                color={liked ? "#FF3B30" : "#666"}
+                            />
+                        </TouchableOpacity>
+                    </Animated.View>
+                    {item.discount > 0 && (
                         <View style={styles.discountBadge}>
-                            <Text style={styles.discountText}>{item.discount}% OFF</Text>
+                            <Text style={styles.discountText}>-{item.discount}%</Text>
                         </View>
                     )}
-                    <TouchableOpacity 
-                        style={styles.favoriteButton}
-                        onPress={() => setLiked(!liked)}
-                    >
-                        <AntDesign 
-                            name={liked ? "heart" : "hearto"} 
-                            size={20} 
-                            color={liked ? "#FF4B4B" : "#fff"} 
-                        />
-                    </TouchableOpacity>
                 </View>
 
                 <View style={styles.detailsContainer}>
-                    <View style={styles.categoryBadge}>
+                    <View style={styles.categoryRow}>
                         <Text style={styles.categoryText}>{item.category}</Text>
+                        {item.stock < 10 && (
+                            <Text style={styles.stockText}>{item.stock} left</Text>
+                        )}
                     </View>
-                    
+
                     <Text style={styles.productName} numberOfLines={2}>
                         {item.name}
                     </Text>
 
-                    <View style={styles.ratingContainer}>
+                    <View style={styles.ratingRow}>
                         <View style={styles.stars}>
                             {renderStars(item.rating)}
                         </View>
-                        <Text style={styles.reviewCount}>({item.reviews} reviews)</Text>
-                    </View>
-
-                    <View style={styles.priceContainer}>
-                        <Text style={styles.productPrice}>K{item.price}</Text>
-                        {item.oldPrice && (
-                            <Text style={styles.oldPrice}>K{item.oldPrice}</Text>
-                        )}
-                    </View>
-
-                    {item.stock < 10 && (
-                        <Text style={styles.stockWarning}>
-                            Only {item.stock} left in stock
+                        <Text style={styles.reviewCount}>
+                            {item.reviews}
                         </Text>
-                    )}
+                    </View>
 
-                    <View style={styles.buttonContainer}>
-                        <TouchableOpacity 
-                            style={styles.addToCartButton} 
+                    <View style={styles.priceRow}>
+                        <View style={styles.priceContainer}>
+                            <Text style={styles.price}>K{item.price}</Text>
+                            {item.oldPrice && (
+                                <Text style={styles.oldPrice}>K{item.oldPrice}</Text>
+                            )}
+                        </View>
+                        <TouchableOpacity
+                            style={styles.addButton}
                             onPress={() => addToCart(item)}
                         >
-                            <Ionicons name="cart" size={20} color="#fff" />
-                            <Text style={styles.buttonText}>Pick</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity style={styles.shareButton}>
-                            <AntDesign name="sharealt" size={20} color="#6F8D80" />
+                            <Ionicons name="add" size={20} color="#FFF" />
                         </TouchableOpacity>
                     </View>
                 </View>
-            </TouchableOpacity>
+            </Pressable>
         </Animated.View>
     );
 };
 
-const { width } = Dimensions.get('window');
-
-const styles = StyleSheet.create({
+const styles = {
     container: {
-        margin: 2,
-        width: '50%',
+        width: ITEM_WIDTH,
+        margin: width * 0.0175,
     },
     productContainer: {
-        backgroundColor: '#ffffff',
-        borderRadius: 20,
+        backgroundColor: '#FFF',
+        borderRadius: 16,
         overflow: 'hidden',
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
     },
-    imageContainer: {
+    imageWrapper: {
         position: 'relative',
+        backgroundColor: '#F8F8F8',
     },
     productImage: {
         width: '100%',
-        height: width * 0.45,
+        height: ITEM_WIDTH,
+        backgroundColor: '#F8F8F8',
     },
     favoriteButton: {
         position: 'absolute',
-        top: 10,
-        right: 10,
-        backgroundColor: 'rgba(0,0,0,0.3)',
+        top: 8,
+        right: 8,
+        backgroundColor: '#FFF',
         padding: 8,
-        borderRadius: 20,
+        borderRadius: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     discountBadge: {
         position: 'absolute',
-        top: 10,
-        left: 10,
-        backgroundColor: '#FF4B4B',
+        top: 8,
+        left: 8,
+        backgroundColor: '#FF3B30',
         paddingHorizontal: 8,
         paddingVertical: 4,
-        borderRadius: 12,
+        borderRadius: 8,
     },
     discountText: {
-        color: '#fff',
+        color: '#FFF',
         fontSize: 12,
-        fontWeight: 'bold',
+        fontWeight: '600',
     },
     detailsContainer: {
         padding: 12,
     },
-    categoryBadge: {
-        backgroundColor: '#F0F0F0',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 8,
-        alignSelf: 'flex-start',
-        marginBottom: 8,
+    categoryRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 6,
     },
     categoryText: {
-        color: '#666',
         fontSize: 12,
+        color: '#666',
+        fontWeight: '500',
+    },
+    stockText: {
+        fontSize: 11,
+        color: '#FF3B30',
+        fontWeight: '500',
     },
     productName: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '600',
-        color: '#333',
-        marginBottom: 8,
+        color: '#1C1C1E',
+        marginBottom: 6,
+        lineHeight: 20,
     },
-    ratingContainer: {
+    ratingRow: {
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 8,
@@ -200,52 +225,34 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#666',
     },
-    priceContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    productPrice: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#25C480',
-        marginRight: 8,
-    },
-    oldPrice: {
-        fontSize: 14,
-        color: '#999',
-        textDecorationLine: 'line-through',
-    },
-    stockWarning: {
-        fontSize: 12,
-        color: '#FF4B4B',
-        marginBottom: 8,
-    },
-    buttonContainer: {
+    priceRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
-    addToCartButton: {
-        flex: 0.85,
+    priceContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 4,
+    },
+    price: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#1C1C1E',
+    },
+    oldPrice: {
+        fontSize: 13,
+        color: '#999',
+        textDecorationLine: 'line-through',
+    },
+    addButton: {
+        backgroundColor: '#007AFF',
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         justifyContent: 'center',
-        backgroundColor: '#25C480',
-        paddingVertical: 10,
-        borderRadius: 25,
-        gap: 8,
+        alignItems: 'center',
     },
-    buttonText: {
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: 14,
-    },
-    shareButton: {
-        padding: 10,
-        borderRadius: 20,
-        backgroundColor: '#F0F0F0',
-    },
-});
+};
 
 export default RenderProductItem;

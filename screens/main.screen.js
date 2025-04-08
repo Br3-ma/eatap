@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -7,30 +7,80 @@ import { BlurView } from 'expo-blur';
 import HomeScreen from './home.screen';
 import MyFoodScreen from './account/food/my-food.screen';
 import BoxScreen from './account/donation/box.screen';
-import StoreCreateScreen from './stores/store-create.screen';
+import StoreSearch from './stores/store-catalog.screen';
 import MeScreen from './account/profile/me.screen';
-import SearchScreen from '../components/main-search-modal';  // Import your SearchScreen
-import HeaderIcons from '../components/main-header-icons';
+import SearchScreen from '../components/main-search-modal';
+import MainHeader from '../components/main-header-icons';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-const TabBarIcon = (props) => {
+// Loading indicator component
+const LoadingIndicator = () => {
+  const [animation] = useState(new Animated.Value(0));
+
+  React.useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(animation, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animation, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <Animated.View
+      style={[
+        styles.loadingIndicator,
+        {
+          opacity: animation,
+        },
+      ]}
+    />
+  );
+};
+
+const TabBarIcon = ({ name, size, color, focused }) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (focused) {
+      setIsLoading(true);
+      const timer = setTimeout(() => setIsLoading(false), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [focused]);
+
   return (
     <View style={styles.iconContainer}>
-      <MaterialCommunityIcons {...props} />
+      {isLoading && <LoadingIndicator />}
+      <MaterialCommunityIcons
+        name={name}
+        size={size}
+        color={color}
+        style={[styles.icon, isLoading && styles.iconLoading]}
+      />
     </View>
   );
 };
 
-// Create a function to combine Tab Navigator and Stack Navigator
 const MainTabNavigator = () => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
       headerShown: true,
       headerStyle: styles.header,
-      headerBackground: () => <BlurView intensity={50} style={StyleSheet.absoluteFill} />,
-      headerRight: () => <HeaderIcons />,
+      headerBackground: () => (
+        <BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
+      ),
+      headerRight: () => <MainHeader />,
       tabBarIcon: ({ focused, color, size }) => {
         let iconName;
         switch (route.name) {
@@ -50,23 +100,32 @@ const MainTabNavigator = () => (
             iconName = focused ? 'account' : 'account-outline';
             break;
         }
-        return <TabBarIcon name={iconName} size={focused ? 26 : 22} color={color} />;
+        return (
+          <TabBarIcon
+            name={iconName}
+            size={focused ? 24 : 20}
+            color={color}
+            focused={focused}
+          />
+        );
       },
-      tabBarActiveTintColor: '#ff9b00', // Deep yellow for active tab
-      tabBarInactiveTintColor: '#857b59d9', // Gray for inactive tabs
+      tabBarActiveTintColor: '#FF8C00',
+      tabBarInactiveTintColor: '#857b59',
       tabBarStyle: styles.tabBar,
       tabBarLabelStyle: styles.tabLabel,
-      tabBarBackground: () => <BlurView intensity={50} style={StyleSheet.absoluteFill} />,
+      tabBarBackground: () => (
+        <BlurView intensity={60} tint="light" style={StyleSheet.absoluteFill} />
+      ),
     })}
   >
     <Tab.Screen name="Eatapp" component={HomeScreen} />
     <Tab.Screen name="My Food" component={MyFoodScreen} />
     <Tab.Screen name="Donate" component={BoxScreen} />
-    <Tab.Screen name="Store" component={StoreCreateScreen} />
-    {/* <Tab.Screen name="Store" component={StoreScreen} /> */}
+    <Tab.Screen name="Store" component={StoreSearch} />
     <Tab.Screen name="You" component={MeScreen} />
   </Tab.Navigator>
 );
+
 const MainScreen = () => {
   return (
     <View style={styles.container}>
@@ -89,74 +148,64 @@ const MainScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f4f4', // Light background for overall app
+    backgroundColor: 'rgba(234,239,196,0.05)',
   },
   header: {
-    backgroundColor: '#2ecc71', // Vibrant green for header
-    height: 100, // Increased height
+    backgroundColor: '#FFB300',
+    height: 80, // Slimmer header
     borderBottomWidth: 0,
-    elevation: 8,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    paddingTop: 40, // Safe area adjustment
-  },
-  headerBackground: {
-    backgroundColor: 'rgba(46, 204, 113, 0.4)', // Semi-transparent green
-    ...StyleSheet.absoluteFillObject,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    paddingTop: 30,
   },
   iconContainer: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
-    borderRadius: 50, // Rounded icon containers
+    padding: 12,
+    position: 'relative',
   },
-  tabBar: {
-    backgroundColor: 'rgba(255, 255, 255, 0.4)', // white-tinted transparent
-    borderTopWidth: 0,
-    height: 70,
-    borderRadius: 20, // Rounded tab bar
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 10,
+  icon: {
+    transform: [{ scale: 1 }],
+  },
+  iconLoading: {
+    transform: [{ scale: 0.9 }],
+  },
+  loadingIndicator: {
     position: 'absolute',
-    left: 8,
-    right: 8,
-    bottom: 8,
+    top: 6,
+    right: 6,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#FFB300',
+  },
+
+  tabBar: {
+    backgroundColor: 'rgba(255, 32, 32, 0.15)',
+    borderTopWidth: 0,
+    height: 60,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 8,
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    bottom: 10,
     overflow: 'hidden',
-    paddingBottom: 5,
+    paddingBottom: 4,
   },
   tabLabel: {
     paddingBottom: 2,
-    fontSize: 2,
-    fontWeight: '600', // Slightly bolder label
-    color: 'rgba(46, 204, 113, 0.9)', // White label for contrast
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0.3,
   },
-  headerTitle: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  headerIconContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingRight: 15,
-  },
-  headerIcon: {
-    marginLeft: 15,
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)', // Subtle white overlay
-  },
-  activeTab: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Highlight for active tab
-    borderRadius: 20,
-  }
 });
 
 export default MainScreen;

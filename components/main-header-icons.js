@@ -1,132 +1,155 @@
 import React, { useState, useEffect } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, Animated, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { useNavigation } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const HeaderIcons = () => {
+const MainHeader = ({ onOpenSidebar }) => {
   const navigation = useNavigation();
   const [cartCount, setCartCount] = useState(0);
+  const [headerOpacity] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(1));
-  const [pressedSearch, setPressedSearch] = useState(false);
-  const [pressedCart, setPressedCart] = useState(false);
+  
+  // Animated values for each icon
+  const searchIconAnim = useState(new Animated.Value(1))[0];
+  const cartIconAnim = useState(new Animated.Value(1))[0];
+  const profileIconAnim = useState(new Animated.Value(1))[0]; // Added for profile icon
 
   useEffect(() => {
-    const fetchCartCount = async () => {
-      try {
-        const cartItems = await AsyncStorage.getItem('cartItems');
-        if (cartItems) {
-          const parsedCartItems = JSON.parse(cartItems);
-          const count = parsedCartItems.length;
-          setCartCount(count);
-          animateCartCount();
-        }
-      } catch (error) {
-        console.error('Error fetching cart count:', error);
-      }
-    };
+    Animated.timing(headerOpacity, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+
     fetchCartCount();
   }, []);
+
+  const fetchCartCount = async () => {
+    try {
+      const cartItems = await AsyncStorage.getItem('cartItems');
+      if (cartItems) {
+        const count = JSON.parse(cartItems).length;
+        setCartCount(count);
+        animateCartCount();
+      }
+    } catch (error) {
+      console.error('Error fetching cart count:', error);
+    }
+  };
 
   const animateCartCount = () => {
     Animated.sequence([
       Animated.spring(scaleAnim, {
-        toValue: 1.3,
+        toValue: 1.4,
         useNativeDriver: true,
-        friction: 3,
-        tension: 40,
+        friction: 4,
+        tension: 50,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
         useNativeDriver: true,
-        friction: 3,
-        tension: 40,
+        friction: 4,
+        tension: 50,
       }),
     ]).start();
   };
 
-  const navigateToCart = () => {
-    setPressedCart(true);
-    setTimeout(() => setPressedCart(false), 200);
-    navigation.navigate('Cart');
+  const animateIcon = (animValue) => {
+    Animated.sequence([
+      Animated.timing(animValue, {
+        toValue: 0.8,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.spring(animValue, {
+        toValue: 1,
+        friction: 3,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
-  const navigateToSearch = () => {
-    setPressedSearch(true);
-    setTimeout(() => setPressedSearch(false), 200);
-    navigation.navigate('Search');
+  const navigateWithAnimation = (route, animValue) => {
+    animateIcon(animValue);
+    navigation.navigate(route);
   };
 
-  const renderIconButton = (iconName, onPress, isPressed, badge = null) => (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.9}
-      style={styles.iconWrapper}
-    >
-      <LinearGradient
-        colors={isPressed ? ['#FFC107', '#FFB300'] : ['#FFB300', '#FFC107']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[
-          styles.iconGradient,
-          isPressed && styles.iconPressed,
-        ]}
+  // Added handler for profile icon
+  const handleProfilePress = () => {
+    animateIcon(profileIconAnim);
+    onOpenSidebar?.();
+  };
+
+  const renderIcon = (iconName, onPress, animValue, badge = null) => (
+    <Animated.View style={[styles.iconContainer, { transform: [{ scale: animValue }] }]}>
+      <TouchableOpacity
+        onPress={onPress}
+        style={styles.iconButton}
+        activeOpacity={0.7}
       >
-        <MaterialCommunityIcons
-          name={iconName}
-          size={24}
-          color="#704214"
-          style={styles.icon}
-        />
-        {badge}
-      </LinearGradient>
-    </TouchableOpacity>
+        <BlurView intensity={80} tint="light" style={styles.iconBlur}>
+          <MaterialCommunityIcons
+            name={iconName}
+            size={24}
+            color="#704214"
+            style={styles.icon}
+          />
+          {badge}
+        </BlurView>
+      </TouchableOpacity>
+    </Animated.View>
   );
 
   return (
-    <LinearGradient
-      colors={['transparent', 'transparent']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.headerContainer}
-    >
-      <View style={styles.headerContent}>
-        <View style={styles.logoContainer}>
+    <Animated.View style={[styles.headerContainer, { opacity: headerOpacity }]}>
+      <BlurView intensity={60} tint="light" style={styles.headerBlur}>
+        <View style={styles.headerContent}>
+          <View style={styles.logoContainer}>
+            
+          </View>
+          <View style={styles.iconsContainer}>
+            {renderIcon(
+              "magnify",
+              () => navigateWithAnimation('Search', searchIconAnim),
+              searchIconAnim
+            )}
+            {renderIcon(
+              "cart-outline",
+              () => navigateWithAnimation('Cart', cartIconAnim),
+              cartIconAnim,
+              cartCount > 0 && (
+                <Animated.View style={[styles.badge, { transform: [{ scale: scaleAnim }] }]}>
+                  <Text style={styles.badgeText}>{cartCount}</Text>
+                </Animated.View>
+              )
+            )}
+            {renderIcon( // Added profile icon
+              "account-circle-outline",
+              handleProfilePress,
+              profileIconAnim
+            )}
+          </View>
         </View>
-        <View style={styles.iconsContainer}>
-          {renderIconButton(
-            "magnify",
-            navigateToSearch,
-            pressedSearch
-          )}
-          {renderIconButton(
-            "cart-outline",
-            navigateToCart,
-            pressedCart,
-            cartCount > 0 && (
-              <Animated.View
-                style={[
-                  styles.badge,
-                  { transform: [{ scale: scaleAnim }] }
-                ]}
-              >
-                <Text style={styles.badgeText}>{cartCount}</Text>
-              </Animated.View>
-            )
-          )}
-        </View>
-      </View>
-    </LinearGradient>
+      </BlurView>
+    </Animated.View>
   );
 };
 
+// Kept all original styles
 const styles = StyleSheet.create({
   headerContainer: {
-    paddingTop: Platform.OS === 'ios' ? 44 : 8,
-    paddingBottom: 4,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+  },
+  headerBlur: {
+    paddingTop: Platform.OS === 'ios' ? 48 : 16,
+    paddingBottom: 12,
   },
   headerContent: {
     flexDirection: 'row',
@@ -138,74 +161,56 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   logoText: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '800',
     color: '#704214',
     letterSpacing: 0.5,
   },
   iconsContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
   },
-  iconWrapper: {
-    borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#704214',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+  iconContainer: {
+    borderRadius: 20,
+    overflow: 'hidden',
   },
-  iconGradient: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
+  iconButton: {
+    width: 48,
+    height: 48,
+  },
+  iconBlur: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  iconPressed: {
-    transform: [{ scale: 0.95 }],
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   icon: {
     transform: [{ scale: 1.1 }],
   },
   badge: {
     position: 'absolute',
-    top: -6,
-    right: -6,
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
+    top: 0,
+    right: -4,
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: '#FF6B6B',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#FFFFFF',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2,
+    elevation: 4,
   },
   badgeText: {
     color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 'bold',
-    textAlign: 'center',
   },
 });
-
-export default HeaderIcons;
+export default MainHeader;

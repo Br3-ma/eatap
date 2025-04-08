@@ -3,6 +3,7 @@ import { View, ImageBackground, Text, TextInput, TouchableOpacity, StyleSheet } 
 import { FontAwesome } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../../confg/conf';
 
 const backgroundImage = require('../../assets/img/otp.jpg');
 
@@ -16,7 +17,7 @@ const RegisterByOTPScreen = ({ navigation }) => {
     switch (step) {
       case 1:
           try {
-            await axios.post('http://localhost/eat-app-server/api/signup/request-otp', { phoneNumber });
+            await axios.post(`${API_BASE_URL}/signup/request-otp`, { phoneNumber });
             setStep(step + 1);
           } catch (error) {
             console.error('Request OTP Error:', error);
@@ -24,7 +25,7 @@ const RegisterByOTPScreen = ({ navigation }) => {
         break;
       case 2:
           try {
-            await axios.post('http://localhost/eat-app-server/api/signup/verify-otp', { otp });
+            await axios.post(`${API_BASE_URL}/signup/verify-otp`, { otp });
             setStep(step + 1);
           } catch (error) {
             console.error('Verify OTP Error:', error);
@@ -32,7 +33,7 @@ const RegisterByOTPScreen = ({ navigation }) => {
         break;
       case 3:
           try {
-            const response = await axios.post('http://localhost/eat-app-server/api/signup/user-info', {
+            const response = await axios.post(`${API_BASE_URL}/signup/user-info`, {
               fullname: name,
               phoneNumber,
             });
