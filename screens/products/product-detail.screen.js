@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ImageBackground, Image, ScrollView, TouchableOpacity, Animated, StyleSheet, Dimensions, Platform } from 'react-native';
 import { FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BlurView } from 'expo-blur';
-
 
 const { width, height } = Dimensions.get('window');
 const ProductDetails = ({ route, navigation }) => {
@@ -89,12 +87,6 @@ const ProductDetails = ({ route, navigation }) => {
     <View style={styles.container}>
       <Animated.View style={[styles.imageContainer, { transform: [{ scale: imageScale }] }]}>
         <Image source={{uri: product.image}} style={styles.heroImage} />
-        <BlurView intensity={80} style={styles.imageOverlay}>
-          {/* <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.8)']}
-            style={styles.gradient}
-          /> */}
-        </BlurView>
       </Animated.View>
 
       <Animated.View style={[styles.header, { opacity: headerOpacity }]}>
@@ -109,9 +101,7 @@ const ProductDetails = ({ route, navigation }) => {
         </TouchableOpacity>
       </Animated.View>
 
-      <Animated.View 
-        style={[styles.detailsContainer, { transform: [{ translateY: detailsTranslateY }] }]}
-      >
+      <Animated.View style={[styles.detailsContainer, { transform: [{ translateY: detailsTranslateY }] }]}>
         <View style={styles.mainInfo}>
           <View style={styles.titleRow}>
             <Text style={styles.productName}>{product.name}</Text>

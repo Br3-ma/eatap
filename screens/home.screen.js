@@ -215,6 +215,7 @@ const HomeScreen = ({ navigation }) => {
               renderItem={({ item }) => (
                 <RenderProductItem
                   item={item}
+                  navigation={navigation}
                   onPress={() => navigation.navigate('ProductDetails', { item })}
                 />
               )}

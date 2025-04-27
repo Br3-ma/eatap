@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import styles from '../../assets/css/create-store.css';
+import { API_BASE_URL } from '../../confg/conf';
 
 const StoreCreateScreen = ({ navigation }) => {
     const [userInfo, setUserInfo] = useState(null);
@@ -77,18 +78,17 @@ const StoreCreateScreen = ({ navigation }) => {
         console.log(currentStep === TOTAL_STEPS);
         if (currentStep === TOTAL_STEPS) {
             try {
-                console.log('here:', here);
                 // Replace with your actual Laravel API endpoint
-                const response = await fetch(`${BASE_URL}/api/stores`, {
+                const response = await fetch(`${API_BASE_URL}/stores`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json', // Ensure userToken is defined
                     },
                     body: JSON.stringify(storeDetails),
                 });
-    
+
                 const data = await response.json();
-    
+
                 if (response.ok) {
                     await AsyncStorage.setItem('storeDetails', JSON.stringify(data));
                     Alert.alert('Success', 'Store created successfully!');
@@ -97,13 +97,14 @@ const StoreCreateScreen = ({ navigation }) => {
                     Alert.alert('Error', data.message || 'Failed to create store.');
                 }
             } catch (error) {
+                console.log(error);
                 Alert.alert('Error', 'Failed to save store details.');
             }
         } else {
             setCurrentStep(currentStep + 1);
         }
     };
-    
+
 
     const handleBack = () => {
         if (currentStep > 1) {
