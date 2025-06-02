@@ -11,6 +11,7 @@ import StoreSearch from './stores/store-catalog.screen';
 import MeScreen from './account/profile/me.screen';
 import SearchScreen from '../components/main-search-modal';
 import MainHeader from '../components/main-header-icons';
+import MyStore from './stores/store.screen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -84,16 +85,16 @@ const MainTabNavigator = () => (
       tabBarIcon: ({ focused, color, size }) => {
         let iconName;
         switch (route.name) {
-          case 'Eatapp':
+          case 'Chat':
             iconName = focused ? 'home' : 'home-outline';
             break;
-          case 'My Food':
+          case 'My Box':
             iconName = focused ? 'food' : 'food-outline';
             break;
           case 'Donate':
             iconName = focused ? 'gift' : 'gift-outline';
             break;
-          case 'Store':
+          case 'Explore':
             iconName = focused ? 'store' : 'store-outline';
             break;
           case 'You':
@@ -118,10 +119,11 @@ const MainTabNavigator = () => (
       ),
     })}
   >
-    <Tab.Screen name="Eatapp" component={HomeScreen} />
-    <Tab.Screen name="My Food" component={MyFoodScreen} />
+    <Tab.Screen name="Chat" component={HomeScreen} />
+    <Tab.Screen name="My Box" component={MyFoodScreen} />
     <Tab.Screen name="Donate" component={BoxScreen} />
-    <Tab.Screen name="Store" component={StoreSearch} />
+    <Tab.Screen name="Explore" component={StoreSearch} />
+    {/* <Tab.Screen name="Store" component={MyStore} /> */}
     <Tab.Screen name="You" component={MeScreen} />
   </Tab.Navigator>
 );

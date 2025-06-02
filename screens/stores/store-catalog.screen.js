@@ -1,291 +1,487 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { 
-    View, 
-    Text, 
-    TouchableOpacity, 
-    StyleSheet, 
-    Dimensions, 
-    FlatList, 
-    TextInput, 
-    Image 
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    StyleSheet,
+    Dimensions,
+    FlatList,
+    ActivityIndicator,
+    Alert,
+    RefreshControl,
+    Animated
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { FontAwesome5, Ionicons } from '@expo/vector-icons';
+import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as Animatable from 'react-native-animatable';
+import { API_BASE_URL } from '../../confg/conf';
+import StoreSearchHeader from '../../components/store-search-header';
+import SearchBar from '../../components/store-search-bar';
+import StoreToolbar from '../../components/store-catalog-toolbar';
+import CategoryItem from '../../components/store-catalog-categories';
+import StoreItem from '../../components/store-catalog-stores';
 
 const { width } = Dimensions.get('window');
-
-const MOCK_STORES = [
-    {
-        id: '1',
-        name: 'Urban Outfitters Inc',
-        category: 'Fashion',
-        rating: 4.5,
-        distance: '0.8km',
-        image: 'https://img.freepik.com/premium-photo/fresh-meat-steak-butcher-shopping-supermarket-food-store-raw-market-beef_163305-281151.jpg',
-        featured: true
-    },
-    {
-        id: '2',
-        name: 'Ab Cafe',
-        category: 'Productivity',
-        rating: 6.5,
-        distance: '2.8km',
-        image: 'https://picdn.gomaji.com/uploads/stores/773/169773/339953/DSC00006.jpg',
-        featured: true
-    },
-    {
-        id: '3',
-        name: 'Six Fire',
-        category: 'Productivity',
-        rating: 3.5,
-        distance: '2.8km',
-        image: 'https://picdn.gomaji.com/uploads/stores/773/169773/339953/DSC00006.jpg',
-        featured: true
-    },
-];
 
 const StoreSearch = ({ navigation }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
+    const [stores, setStores] = useState([]);
+    const [page, setPage] = useState(1);
+    const [isLoading, setIsLoading] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [totalStores, setTotalStores] = useState(0);
+    const [error, setError] = useState(null);
+
+    // Scroll animation states
+    const scrollY = useRef(new Animated.Value(0)).current;
+    const lastScrollY = useRef(0);
+    const headerTranslateY = useRef(new Animated.Value(0)).current;
+    const headerScale = useRef(new Animated.Value(1)).current;
+    const headerOpacity = useRef(new Animated.Value(1)).current;
+    const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+    const [visibleElements, setVisibleElements] = useState({
+        searchBar: true,
+        toolbar: true,
+        categories: true,
+        promoBanner: true
+    });
     
-    const categories = useMemo(() => ['All', 'Fashion', 'Food', 'Electronics', 'Books'], []);
-    
-    const filteredStores = useMemo(() => 
-        MOCK_STORES.filter(store => 
-            store.name.toLowerCase().includes(searchQuery.toLowerCase()) && 
-            (selectedCategory === 'All' || store.category === selectedCategory)
-        ), [searchQuery, selectedCategory]
+    // Animation refs for each element
+    const searchBarAnim = useRef(new Animated.Value(1)).current;
+    const toolbarAnim = useRef(new Animated.Value(1)).current;
+    const categoriesAnim = useRef(new Animated.Value(1)).current;
+    const promoBannerAnim = useRef(new Animated.Value(1)).current;
+
+    const categories = useMemo(() => [
+        { id: 'All', name: 'All', icon: 'apps' },
+        { id: 'Fashion', name: 'Fashion', icon: 'shirt' },
+        { id: 'Food', name: 'Food', icon: 'restaurant' },
+        { id: 'Electronics', name: 'Electronics', icon: 'devices' },
+        { id: 'Books', name: 'Books', icon: 'book' }
+    ], []);
+
+    const fetchStores = useCallback(async (pageToFetch = 1, refreshing = false) => {
+        if (isLoading && !refreshing) return;
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const categoryQuery = selectedCategory !== 'All' ? `&category=${selectedCategory}` : '';
+            const searchQueryParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '';
+            const url = `${API_BASE_URL}/available-stores?page=${pageToFetch}${categoryQuery}${searchQueryParam}`;
+
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const newStores = data.data || [];
+
+            if (refreshing || pageToFetch === 1) {
+                setStores(newStores);
+            } else {
+                setStores(prev => [...prev, ...newStores]);
+            }
+
+            setHasMore(data.current_page < data.last_page);
+            setTotalStores(data.total || 0);
+
+        } catch (error) {
+            console.error('Failed to fetch stores:', error);
+            setError(error.message);
+            Alert.alert('Error', 'Failed to load stores. Please try again.');
+        } finally {
+            setIsLoading(false);
+            if (refreshing) setIsRefreshing(false);
+        }
+    }, [searchQuery, selectedCategory, isLoading]);
+
+    useEffect(() => {
+        setPage(1);
+        setStores([]);
+        fetchStores(1, true);
+    }, [searchQuery, selectedCategory]);
+
+
+    // Animation configuration
+    const animateElement = (animValue, toValue, duration = 300) => {
+        return Animated.timing(animValue, {
+            toValue,
+            duration,
+            useNativeDriver: true,
+        });
+    };
+
+    // Sequential hide animation (removes elements one by one)
+    const hideElementsSequentially = useCallback(() => {
+        const hideSequence = [
+            { anim: promoBannerAnim, key: 'promoBanner', delay: 0 },
+            { anim: categoriesAnim, key: 'categories', delay: 100 },
+            { anim: toolbarAnim, key: 'toolbar', delay: 200 },
+            { anim: searchBarAnim, key: 'searchBar', delay: 300 }
+        ];
+
+        hideSequence.forEach(({ anim, key, delay }) => {
+            setTimeout(() => {
+                animateElement(anim, 0, 200).start(() => {
+                    setVisibleElements(prev => ({ ...prev, [key]: false }));
+                });
+            }, delay);
+        });
+    }, [promoBannerAnim, categoriesAnim, toolbarAnim, searchBarAnim]);
+
+    // Sequential show animation (appends elements one by one)
+    const showElementsSequentially = useCallback(() => {
+        const showSequence = [
+            { anim: searchBarAnim, key: 'searchBar', delay: 0 },
+            { anim: toolbarAnim, key: 'toolbar', delay: 100 },
+            { anim: categoriesAnim, key: 'categories', delay: 200 },
+            { anim: promoBannerAnim, key: 'promoBanner', delay: 300 }
+        ];
+
+        showSequence.forEach(({ anim, key, delay }) => {
+            setTimeout(() => {
+                setVisibleElements(prev => ({ ...prev, [key]: true }));
+                animateElement(anim, 1, 200).start();
+            }, delay);
+        });
+    }, [searchBarAnim, toolbarAnim, categoriesAnim, promoBannerAnim]);
+
+    // Updated handleScroll function
+    const handleScroll = useCallback((event) => {
+        const currentScrollY = event.nativeEvent.contentOffset.y;
+        const scrollDifference = currentScrollY - lastScrollY.current;
+        const threshold = 10; // Minimum scroll distance to trigger animation
+
+        if (Math.abs(scrollDifference) < threshold) {
+            return;
+        }
+
+        if (scrollDifference > 0 && currentScrollY > 50) {
+            // Scrolling down - remove elements
+            if (isHeaderVisible) {
+                setIsHeaderVisible(false);
+                hideElementsSequentially();
+            }
+        } else if (scrollDifference < 0) {
+            // Scrolling up - append elements
+            if (!isHeaderVisible) {
+                setIsHeaderVisible(true);
+                showElementsSequentially();
+            }
+        }
+
+        lastScrollY.current = currentScrollY;
+    }, [isHeaderVisible, hideElementsSequentially, showElementsSequentially]);
+
+    // Animated component wrapper
+    const AnimatedElement = ({ children, animValue, visible, style = {} }) => {
+        if (!visible) return null;
+        
+        return (
+            <Animated.View
+                style={[
+                    style,
+                    {
+                        opacity: animValue,
+                        transform: [
+                            {
+                                translateY: animValue.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [-20, 0] // Slide in from top
+                                })
+                            },
+                            {
+                                scale: animValue.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0.8, 1] // Scale animation
+                                })
+                            }
+                        ]
+                    }
+                ]}
+            >
+                {children}
+            </Animated.View>
+        );
+    };
+    // Reset header visibility when refreshing
+    const handleRefresh = () => {
+        setIsRefreshing(true);
+        setPage(1);
+        setStores([]);
+        fetchStores(1, true);
+
+        // Show header when refreshing
+        if (!isHeaderVisible) {
+            setIsHeaderVisible(true);
+            Animated.parallel([
+                Animated.timing(headerTranslateY, {
+                    toValue: 0,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(headerScale, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(headerOpacity, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                })
+            ]).start();
+        }
+    };
+
+    const handleLoadMore = () => {
+        if (hasMore && !isLoading) {
+            const nextPage = page + 1;
+            setPage(nextPage);
+            fetchStores(nextPage);
+        }
+    };
+
+    const handleStorePress = (store) => {
+        navigation.navigate('StoreDetail', { store });
+    };
+
+    const handleToolbarAction = (action) => {
+        switch (action) {
+            case 'create':
+                navigation.navigate('StoreCreate');
+                break;
+            case 'report':
+                Alert.alert('Report Store', 'Select a store to report');
+                break;
+            case 'favorites':
+                navigation.navigate('FavoriteStores');
+                break;
+            case 'map':
+                navigation.navigate('StoreMap', { stores });
+                break;
+            default:
+                break;
+        }
+    };
+
+    const renderCategoryItem = ({ item }) => (
+        <CategoryItem
+            item={item}
+            selectedCategory={selectedCategory}
+            onPress={setSelectedCategory}
+        />
     );
 
-    const renderSearchBar = useCallback(() => (
-        <Animatable.View animation="slideInDown" style={styles.searchContainer}>
-            <View style={styles.searchWrapper}>
-                <Ionicons name="search" size={24} color="#666" />
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search stores..."
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    accessible
-                    accessibilityLabel="Search Input"
-                />
-            </View>
-        </Animatable.View>
-    ), [searchQuery]);
+    const renderStoreItem = ({ item, index }) => (
+        <StoreItem item={item} index={index} onPress={handleStorePress} />
+    );
 
-    const renderToolbar = () => (
-        <View style={styles.toolbar}>
-            <TouchableOpacity style={styles.toolbarButton1} onPress={() => navigation.navigate('StoreCreate')}>
-                <Text style={styles.toolbarButtonText1}>Create Store</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.toolbarButton} onPress={() => alert('Report Store')}>
-                <Text style={styles.toolbarButtonText}>Report Store</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.toolbarButton} onPress={() => alert('Favorite Store')}>
-                <Text style={styles.toolbarButtonText}>Favorite Store</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.toolbarButton} onPress={() => alert('Store Location Map')}>
-                <Text style={styles.toolbarButtonText}>Location Map</Text>
+    const renderPromoBanner = () => (
+        <Animatable.View animation="pulse" iterationCount="infinite" style={styles.promoBanner}>
+            <MaterialIcons name="local-offer" size={20} color="#ff6b35" />
+            <Text style={styles.promoText}>🎉 Special Offer! Get 20% off on your first order!</Text>
+        </Animatable.View>
+    );
+
+    const renderEmptyState = () => (
+        <View style={styles.emptyState}>
+            <MaterialIcons name="store" size={80} color="#ccc" />
+            <Text style={styles.emptyStateTitle}>No stores found</Text>
+            <Text style={styles.emptyStateSubtitle}>
+                Try adjusting your search or category filter
+            </Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => handleRefresh()}>
+                <Text style={styles.retryButtonText}>Retry</Text>
             </TouchableOpacity>
         </View>
     );
 
-    const renderCategoryItem = useCallback(({ item }) => (
-        <TouchableOpacity
-            style={[styles.categoryItem, selectedCategory === item && styles.selectedCategory]}
-            onPress={() => setSelectedCategory(item)}
-            accessible
-            accessibilityLabel={`Category: ${item}`}
-        >
-            <Text style={[styles.categoryText, selectedCategory === item && styles.selectedCategoryText]}>
-                {item}
-            </Text>
-        </TouchableOpacity>
-    ), [selectedCategory]);
-
-    const renderStoreItem = useCallback(({ item }) => (
-        <Animatable.View animation="fadeInUp" style={styles.storeCard}>
-            <TouchableOpacity onPress={() => navigation.navigate('StoreDetail', { store: item })} accessible accessibilityLabel={`Store: ${item.name}`}>
-                <Image source={{ uri: item.image }} style={styles.storeImage} />
-                <View style={styles.storeInfo}>
-                    <Text style={styles.storeName}>{item.name}</Text>
-                    <View style={styles.storeMetaInfo}>
-                        <View style={styles.ratingContainer}>
-                            <FontAwesome5 name="star" size={12} color="#FFD700" />
-                            <Text style={styles.ratingText}>{item.rating}</Text>
-                        </View>
-                        <Text style={styles.distanceText}>{item.distance}</Text>
-                    </View>
-                </View>
-            </TouchableOpacity>
-        </Animatable.View>
-    ), [navigation]);
+    const renderFooter = () => {
+        if (!isLoading) return null;
+        return (
+            <View style={styles.loadingFooter}>
+                <ActivityIndicator size="small" color="#007bff" />
+                <Text style={styles.loadingText}>Loading more stores...</Text>
+            </View>
+        );
+    };
 
     return (
         <SafeAreaView style={styles.container}>
-            {renderToolbar()}
-            {renderSearchBar()}
-            <FlatList
-                horizontal
-                data={categories}
-                renderItem={renderCategoryItem}
-                keyExtractor={(item) => item}
-                style={styles.categoriesList}
-                showsHorizontalScrollIndicator={false}
+            <StoreSearchHeader
+                totalStores={totalStores}
+                onFilterPress={() => Alert.alert('Filters', 'Filter options coming soon!')}
             />
-            {/* Promo Banner */}
-            <View style={styles.promoBanner}>
-                <Text style={styles.promoText}>🎉 Special Offer! Get 20% off on your first order! 🎉</Text>
+
+            <View style={styles.headerContainer}>
+                <AnimatedElement 
+                    animValue={searchBarAnim} 
+                    visible={visibleElements.searchBar}
+                    style={styles.headerElement}
+                >
+                    <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+                </AnimatedElement>
+
+                <AnimatedElement 
+                    animValue={toolbarAnim} 
+                    visible={visibleElements.toolbar}
+                    style={styles.headerElement}
+                >
+                    <StoreToolbar onAction={handleToolbarAction} />
+                </AnimatedElement>
+
+                <AnimatedElement 
+                    animValue={categoriesAnim} 
+                    visible={visibleElements.categories}
+                    style={styles.headerElement}
+                >
+                    <FlatList
+                        horizontal
+                        data={categories}
+                        renderItem={renderCategoryItem}
+                        keyExtractor={(item) => item.id}
+                        style={styles.categoriesList}
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.categoriesContent}
+                    />
+                </AnimatedElement>
+
+                <AnimatedElement 
+                    animValue={promoBannerAnim} 
+                    visible={visibleElements.promoBanner}
+                    style={styles.headerElement}
+                >
+                    {renderPromoBanner()}
+                </AnimatedElement>
             </View>
-            <FlatList
-                data={filteredStores}
-                renderItem={renderStoreItem}
-                keyExtractor={(item) => item.id}
-                numColumns={2}
-                contentContainerStyle={styles.storeGrid}
-                showsVerticalScrollIndicator={false}
-            />
+
+            <View style={styles.storeContainer}>
+                <FlatList
+                    data={stores}
+                    renderItem={renderStoreItem}
+                    keyExtractor={(item) => item.id.toString()}
+                    numColumns={2}
+                    contentContainerStyle={[
+                        styles.storeGrid,
+                        stores.length === 0 && styles.storeGridEmpty
+                    ]}
+                    showsVerticalScrollIndicator={false}
+                    onEndReached={handleLoadMore}
+                    onEndReachedThreshold={0.3}
+                    onScroll={handleScroll}
+                    scrollEventThrottle={16}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={isRefreshing}
+                            onRefresh={handleRefresh}
+                            colors={['#007bff']}
+                            tintColor="#007bff"
+                        />
+                    }
+                    ListFooterComponent={renderFooter}
+                    ListEmptyComponent={!isLoading && stores.length === 0 ? renderEmptyState : null}
+                />
+            </View>
         </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
+      flex: 1,
+      backgroundColor: '#f8f9fa',
+    },
+    // Container for the store list to take up remaining space
+    storeContainer: {
         flex: 1,
-        backgroundColor: '#f8f9fa'
     },
-    searchContainer: {
-        padding: 15,
-        backgroundColor: '#fff',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+  
+    promoBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#fff3cd',
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      marginHorizontal: 15,
+      marginVertical: 10,
+      borderRadius: 10,
+      borderLeftWidth: 4,
+      borderLeftColor: '#ff6b35',
     },
-    searchWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#f5f5f5',
-        borderRadius: 12,
-        paddingHorizontal: 10,
+    promoText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: '#856404',
+      marginLeft: 10,
+      flex: 1,
     },
-    searchInput: {
-        flex: 1,
-        marginLeft: 10,
-        fontSize: 16,
+  
+    categoriesList: {
+      backgroundColor: '#fff',
+      borderBottomWidth: 1,
+      borderBottomColor: '#f0f0f0',
     },
-    toolbar: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-        backgroundColor: '#fff',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+    categoriesContent: {
+      paddingHorizontal: 15,
+      paddingVertical: 15,
     },
-    toolbarButton1: {
-       paddingVertical : 10 ,
-       paddingHorizontal : 15 ,
-       borderRadius : 20 ,
-       backgroundColor : '#000' ,
-       marginHorizontal : 5 ,
-       alignItems : 'center' ,
-       justifyContent : 'center' ,
-   },
-   toolbarButtonText1:{
-       fontSize : 14 ,
-       color : '#fff' ,
-   },
-   toolbarButton: {
-      paddingVertical : 10 ,
-      paddingHorizontal : 15 ,
-      borderRadius : 20 ,
-      backgroundColor : '#f0f0f0' ,
-      marginHorizontal : 5 ,
-      alignItems : 'center' ,
-      justifyContent : 'center' ,
-  },
-   toolbarButtonText:{
-       fontSize : 14 ,
-       color : '#333' ,
-   },
-   categoriesList:{
-       paddingVertical : 15 ,
-       paddingHorizontal : 5 ,
-       marginBottom :10 ,
-   },
-   categoryItem:{
-       paddingHorizontal : 20 ,
-       paddingVertical : 10 ,
-       marginHorizontal : 5 ,
-       borderRadius : 20 ,
-       backgroundColor : '#f0f0f0' 
-   },
-   selectedCategory:{
-       backgroundColor:'#000'
-   },
-   categoryText:{
-       fontSize :16 ,
-       color:'#666'
-   },
-   selectedCategoryText:{
-       color:'#fff'
-   },
-   storeGrid:{
-       padding :10
-   },
-   storeCard:{
-       flex :1 ,
-       margin :8 ,
-       borderRadius :16 ,
-       overflow:'hidden' ,
-       height :200
-   },
-   storeImage:{
-       width:'100%' ,
-       height:'100%'
-   },
-   storeInfo:{
-       padding :10 ,
-   },
-   storeName:{
-       fontSize :16 ,
-       fontWeight :'bold'
-   },
-   storeMetaInfo:{
-      flexDirection :'row' ,
-      justifyContent :'space-between' 
-   },
-   ratingContainer:{
-      flexDirection :'row' ,
-      alignItems :'center' 
-   },
-   ratingText:{
-      color :'#666' ,
-      fontSize :12 
-   },
-   distanceText:{
-      color :'#666' ,
-      fontSize :12 
-   },
-   promoBanner:{
-      backgroundColor:'#ffeb3b', // Bright background for visibility
-      paddingVertical :10,
-      paddingHorizontal :15,
-      borderRadius :10,
-      marginVertical :10,
-      alignItems :'center'
-   },
-   promoText:{
-      fontSize :16,
-      fontWeight:'bold',
-      color:'#000' // Black text for contrast
-   }
-});
+  
+    storeGrid: {
+      padding: 15,
+    },
+    storeGridEmpty: {
+      flexGrow: 1,
+      justifyContent: 'center',
+    },
+  
+    loadingFooter: {
+      paddingVertical: 15,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginLeft: 10,
+      fontSize: 14,
+      color: '#007bff',
+    },
+  
+    emptyState: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    emptyStateTitle: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: '#ccc',
+      marginTop: 20,
+    },
+    emptyStateSubtitle: {
+      fontSize: 16,
+      color: '#aaa',
+      marginTop: 10,
+      textAlign: 'center',
+    },
+    retryButton: {
+      marginTop: 20,
+      backgroundColor: '#007bff',
+      paddingVertical: 10,
+      paddingHorizontal: 30,
+      borderRadius: 25,
+    },
+    retryButtonText: {
+      color: '#fff',
+      fontWeight: '600',
+      fontSize: 16,
+    },
+});  
 
 export default StoreSearch;

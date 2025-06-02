@@ -80,6 +80,7 @@ const MainHeader = ({ onOpenSidebar }) => {
   // Added handler for profile icon
   const handleProfilePress = () => {
     animateIcon(profileIconAnim);
+    navigation.navigate('MeScreen');
     onOpenSidebar?.();
   };
 
