@@ -1,19 +1,22 @@
 import React from 'react';
 import { View, Text, Dimensions, StyleSheet, TouchableOpacity } from 'react-native';
 import { FontAwesome5, Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+// import MainScreen from './screens/main.screen';
 
 const { width } = Dimensions.get('window');
 
-const Header = ({ storeDetails }) => {
-  // Parse store hours from JSON string if it exists
+const Header = ({ storeDetails, navigation }) => {
   const hours = storeDetails?.hours ? JSON.parse(storeDetails.hours) : null;
-  
-  // Format store hours for display
   const storeHours = hours ? `${hours.opening}:00 - ${hours.closing}:00` : 'Hours not set';
-  
+
   return (
     <View style={styles.header}>
       <View style={styles.headerLeft}>
+        {/* Exit Store Button */}
+        <TouchableOpacity onPress={() => navigation.navigate('Main')} style={styles.exitButton}>
+          <Ionicons name="arrow-back" size={20} color="#1f2937" />
+        </TouchableOpacity>
+
         <View style={styles.logoContainer}>
           <FontAwesome5 name="shopping-bag" size={18} color="#2563eb" />
           <TouchableOpacity style={styles.storeInfoContainer}>
@@ -27,6 +30,7 @@ const Header = ({ storeDetails }) => {
           </TouchableOpacity>
         </View>
       </View>
+
       <View style={styles.headerRight}>
         <TouchableOpacity style={styles.headerButton}>
           <Feather name="search" size={20} color="#1f2937" />
@@ -63,6 +67,13 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+  },
+  exitButton: {
+    padding: 6,
+    borderRadius: 20,
+    backgroundColor: '#f1f5f9',
+    marginRight: 6,
   },
   logoContainer: {
     flexDirection: 'row',

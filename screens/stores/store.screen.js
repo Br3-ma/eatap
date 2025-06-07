@@ -13,7 +13,7 @@ const MyStore = ({ navigation }) => {
     const [storeDetails, setStoreDetails] = useState(null);
 
     const [quickActions] = useState([
-        { name: 'Add\nProduct', icon: 'plus-circle', color: '#059669', onPress: () => navigation.navigate('AddProduct'), type: 'Feather' },
+        { name: 'Add\nProduct', icon: 'plus-circle', color: '#059669', onPress: () => navigation.navigate('AddProduct', { store_id: storeDetails?.id }), type: 'Feather' },
         { name: 'Quick\nSale', icon: 'cash-fast', color: '#2563eb', onPress: () => navigation.navigate('QuickSale'), type: 'MaterialCommunityIcons' },
         { name: 'Inventory', icon: 'warehouse', color: '#7c3aed', onPress: () => navigation.navigate('Stock'), type: 'FontAwesome5' }
     ]);
@@ -54,7 +54,7 @@ const MyStore = ({ navigation }) => {
 
     return (
         <SafeAreaView style={styles.container}>
-            <Header storeDetails={storeDetails} />
+            <Header storeDetails={storeDetails} navigation={navigation} />
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
                 <PerformanceCard storeDetails={storeDetails} />
                 <QuickActions quickActions={quickActions} renderIcon={renderIcon} />

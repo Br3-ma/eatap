@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { PaperProvider } from 'react-native-paper';
 
 // Screens
 import RegisterByOTPScreen from './screens/auth/otp-register.screen';
@@ -59,42 +60,46 @@ const App = () => {
 
   if (showSplashScreen) {
     return (
-      <View style={styles.centered}>
-        <SplashScreen />
-      </View>
+      <PaperProvider>
+        <View style={styles.centered}>
+          <SplashScreen />
+        </View>
+      </PaperProvider>
     );
   }
 
   return (
-    <UserProvider> {/* Wrap the app with UserProvider */}
-      <NavigationContainer>
-        {authenticated ? (
-          <Stack.Navigator initialRouteName="Main" headerMode="none">
-            <Stack.Screen name="Main" component={MainScreen} />
-            <Stack.Screen name="Cart" component={CartScreen} />
-            <Stack.Screen name="ProductDetails" component={ProductDetails} />
-            <Stack.Screen name="CreateStore" component={StoreCreateScreen} />
-            <Stack.Screen name="MyStore" component={MyStore} />
-            <Stack.Screen name="AddProduct" component={AddProduct} />
-            <Stack.Screen name="QuickSale" component={QuickSale} />
-            <Stack.Screen name="Stock" component={Stock} />
-            <Stack.Screen name="Products" component={StoreProducts} />
-            <Stack.Screen name="Marketing" component={StoreMarketing} />
-            <Stack.Screen name="Accounts" component={StoreAccounts} />
-            <Stack.Screen name="StoreDetail" component={StoreDetail} />
-            <Stack.Screen name="StoreCreate" component={StoreCreateScreen} />
-            <Stack.Screen name="StoreProductDetailScreen" component={StoreProductDetailScreen} />
-          </Stack.Navigator>
-        ) : (
-          <Stack.Navigator initialRouteName="RegisterByOTP" headerMode="none">
-            <Stack.Screen name="RegisterByOTP" component={RegisterByOTPScreen} />
-            <Stack.Screen name="Overview" component={OverviewScreen} />
-            <Stack.Screen name="ContactsPermissions" component={ContactsPermissions} />
-            <Stack.Screen name="Main" component={MainScreen} />
-          </Stack.Navigator>
-        )}
-      </NavigationContainer>
-    </UserProvider>
+    <PaperProvider>
+      <UserProvider>
+        <NavigationContainer>
+          {authenticated ? (
+            <Stack.Navigator initialRouteName="Main" headerMode="none">
+              <Stack.Screen name="Main" component={MainScreen} />
+              <Stack.Screen name="Cart" component={CartScreen} />
+              <Stack.Screen name="ProductDetails" component={ProductDetails} />
+              <Stack.Screen name="CreateStore" component={StoreCreateScreen} />
+              <Stack.Screen name="MyStore" component={MyStore} />
+              <Stack.Screen name="AddProduct" component={AddProduct} />
+              <Stack.Screen name="QuickSale" component={QuickSale} />
+              <Stack.Screen name="Stock" component={Stock} />
+              <Stack.Screen name="Products" component={StoreProducts} />
+              <Stack.Screen name="Marketing" component={StoreMarketing} />
+              <Stack.Screen name="Accounts" component={StoreAccounts} />
+              <Stack.Screen name="StoreDetail" component={StoreDetail} />
+              <Stack.Screen name="StoreCreate" component={StoreCreateScreen} />
+              <Stack.Screen name="StoreProductDetailScreen" component={StoreProductDetailScreen} />
+            </Stack.Navigator>
+          ) : (
+            <Stack.Navigator initialRouteName="RegisterByOTP" headerMode="none">
+              <Stack.Screen name="RegisterByOTP" component={RegisterByOTPScreen} />
+              <Stack.Screen name="Overview" component={OverviewScreen} />
+              <Stack.Screen name="ContactsPermissions" component={ContactsPermissions} />
+              <Stack.Screen name="Main" component={MainScreen} />
+            </Stack.Navigator>
+          )}
+        </NavigationContainer>
+      </UserProvider>
+    </PaperProvider>
   );
 };
 

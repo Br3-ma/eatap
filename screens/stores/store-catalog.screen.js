@@ -1,16 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import {
-    View,
-    Text,
-    TouchableOpacity,
-    StyleSheet,
-    Dimensions,
-    FlatList,
-    ActivityIndicator,
-    Alert,
-    RefreshControl,
-    Animated
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, FlatList, ActivityIndicator, Alert, RefreshControl, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as Animatable from 'react-native-animatable';
@@ -20,7 +9,6 @@ import SearchBar from '../../components/store-search-bar';
 import StoreToolbar from '../../components/store-catalog-toolbar';
 import CategoryItem from '../../components/store-catalog-categories';
 import StoreItem from '../../components/store-catalog-stores';
-
 const { width } = Dimensions.get('window');
 
 const StoreSearch = ({ navigation }) => {
@@ -47,13 +35,12 @@ const StoreSearch = ({ navigation }) => {
         categories: true,
         promoBanner: true
     });
-    
+
     // Animation refs for each element
     const searchBarAnim = useRef(new Animated.Value(1)).current;
     const toolbarAnim = useRef(new Animated.Value(1)).current;
     const categoriesAnim = useRef(new Animated.Value(1)).current;
     const promoBannerAnim = useRef(new Animated.Value(1)).current;
-
     const categories = useMemo(() => [
         { id: 'All', name: 'All', icon: 'apps' },
         { id: 'Fashion', name: 'Fashion', icon: 'shirt' },
@@ -106,7 +93,6 @@ const StoreSearch = ({ navigation }) => {
         fetchStores(1, true);
     }, [searchQuery, selectedCategory]);
 
-
     // Animation configuration
     const animateElement = (animValue, toValue, duration = 300) => {
         return Animated.timing(animValue, {
@@ -124,7 +110,6 @@ const StoreSearch = ({ navigation }) => {
             { anim: toolbarAnim, key: 'toolbar', delay: 200 },
             { anim: searchBarAnim, key: 'searchBar', delay: 300 }
         ];
-
         hideSequence.forEach(({ anim, key, delay }) => {
             setTimeout(() => {
                 animateElement(anim, 0, 200).start(() => {
@@ -142,7 +127,6 @@ const StoreSearch = ({ navigation }) => {
             { anim: categoriesAnim, key: 'categories', delay: 200 },
             { anim: promoBannerAnim, key: 'promoBanner', delay: 300 }
         ];
-
         showSequence.forEach(({ anim, key, delay }) => {
             setTimeout(() => {
                 setVisibleElements(prev => ({ ...prev, [key]: true }));
@@ -181,7 +165,7 @@ const StoreSearch = ({ navigation }) => {
     // Animated component wrapper
     const AnimatedElement = ({ children, animValue, visible, style = {} }) => {
         if (!visible) return null;
-        
+
         return (
             <Animated.View
                 style={[
@@ -302,7 +286,7 @@ const StoreSearch = ({ navigation }) => {
         </View>
     );
 
-    const renderFooter = () => {
+    const renderLoadingFooter = () => {
         if (!isLoading) return null;
         return (
             <View style={styles.loadingFooter}>
@@ -320,24 +304,24 @@ const StoreSearch = ({ navigation }) => {
             />
 
             <View style={styles.headerContainer}>
-                <AnimatedElement 
-                    animValue={searchBarAnim} 
+                <AnimatedElement
+                    animValue={searchBarAnim}
                     visible={visibleElements.searchBar}
                     style={styles.headerElement}
                 >
                     <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
                 </AnimatedElement>
 
-                <AnimatedElement 
-                    animValue={toolbarAnim} 
+                <AnimatedElement
+                    animValue={toolbarAnim}
                     visible={visibleElements.toolbar}
                     style={styles.headerElement}
                 >
                     <StoreToolbar onAction={handleToolbarAction} />
                 </AnimatedElement>
 
-                <AnimatedElement 
-                    animValue={categoriesAnim} 
+                <AnimatedElement
+                    animValue={categoriesAnim}
                     visible={visibleElements.categories}
                     style={styles.headerElement}
                 >
@@ -352,8 +336,8 @@ const StoreSearch = ({ navigation }) => {
                     />
                 </AnimatedElement>
 
-                <AnimatedElement 
-                    animValue={promoBannerAnim} 
+                <AnimatedElement
+                    animValue={promoBannerAnim}
                     visible={visibleElements.promoBanner}
                     style={styles.headerElement}
                 >
@@ -384,7 +368,7 @@ const StoreSearch = ({ navigation }) => {
                             tintColor="#007bff"
                         />
                     }
-                    ListFooterComponent={renderFooter}
+                    ListFooterComponent={renderLoadingFooter}
                     ListEmptyComponent={!isLoading && stores.length === 0 ? renderEmptyState : null}
                 />
             </View>
@@ -394,94 +378,89 @@ const StoreSearch = ({ navigation }) => {
 
 const styles = StyleSheet.create({
     container: {
-      flex: 1,
-      backgroundColor: '#f8f9fa',
+        flex: 1,
+        backgroundColor: '#f8f9fa',
     },
-    // Container for the store list to take up remaining space
     storeContainer: {
         flex: 1,
     },
-  
     promoBanner: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: '#fff3cd',
-      paddingVertical: 12,
-      paddingHorizontal: 20,
-      marginHorizontal: 15,
-      marginVertical: 10,
-      borderRadius: 10,
-      borderLeftWidth: 4,
-      borderLeftColor: '#ff6b35',
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff3cd',
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        marginHorizontal: 15,
+        marginVertical: 10,
+        borderRadius: 10,
+        borderLeftWidth: 4,
+        borderLeftColor: '#ff6b35',
     },
     promoText: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: '#856404',
-      marginLeft: 10,
-      flex: 1,
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#856404',
+        marginLeft: 10,
+        flex: 1,
     },
-  
     categoriesList: {
-      backgroundColor: '#fff',
-      borderBottomWidth: 1,
-      borderBottomColor: '#f0f0f0',
+        backgroundColor: '#fff',
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
     },
     categoriesContent: {
-      paddingHorizontal: 15,
-      paddingVertical: 15,
+        paddingHorizontal: 15,
+        paddingVertical: 15,
     },
-  
+
     storeGrid: {
-      padding: 15,
+        padding: 15,
     },
     storeGridEmpty: {
-      flexGrow: 1,
-      justifyContent: 'center',
+        flexGrow: 1,
+        justifyContent: 'center',
     },
-  
     loadingFooter: {
-      paddingVertical: 15,
-      flexDirection: 'row',
-      justifyContent: 'center',
-      alignItems: 'center',
+        paddingVertical: 15,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     loadingText: {
-      marginLeft: 10,
-      fontSize: 14,
-      color: '#007bff',
+        marginLeft: 10,
+        fontSize: 14,
+        color: '#007bff',
     },
-  
     emptyState: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 20,
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
     },
     emptyStateTitle: {
-      fontSize: 22,
-      fontWeight: 'bold',
-      color: '#ccc',
-      marginTop: 20,
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#ccc',
+        marginTop: 20,
     },
     emptyStateSubtitle: {
-      fontSize: 16,
-      color: '#aaa',
-      marginTop: 10,
-      textAlign: 'center',
+        fontSize: 16,
+        color: '#aaa',
+        marginTop: 10,
+        textAlign: 'center',
     },
     retryButton: {
-      marginTop: 20,
-      backgroundColor: '#007bff',
-      paddingVertical: 10,
-      paddingHorizontal: 30,
-      borderRadius: 25,
+        marginTop: 20,
+        backgroundColor: '#007bff',
+        paddingVertical: 10,
+        paddingHorizontal: 30,
+        borderRadius: 25,
     },
     retryButtonText: {
-      color: '#fff',
-      fontWeight: '600',
-      fontSize: 16,
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 16,
     },
-});  
+});
 
 export default StoreSearch;
