@@ -25,9 +25,15 @@ import StoreCreateScreen from './screens/stores/store-create.screen';
 import ProductDetails from './screens/products/product-detail.screen';
 import StoreDetail from './screens/stores/store-details.screen';
 import StoreProductDetailScreen from './screens/stores/store-product-detail.screen';
+import EditProfileScreen from './screens/account/profile/edit-profile.screen';
+import ActivityHistoryScreen from './screens/account/profile/activity-history.screen';
+import SettingsScreen from './screens/account/profile/settings.screen';
+import SupportScreen from './screens/account/profile/support.screen';
+import AboutScreen from './screens/account/profile/about.screen';
 
 import { API_BASE_URL } from './confg/conf';
 import { UserProvider } from './data/helpers/UserContext';
+import GetStartedWithStore from './screens/stores/get-started-store.screen';
 
 const Stack = createStackNavigator();
 
@@ -78,6 +84,7 @@ const App = () => {
               <Stack.Screen name="Cart" component={CartScreen} />
               <Stack.Screen name="ProductDetails" component={ProductDetails} />
               <Stack.Screen name="CreateStore" component={StoreCreateScreen} />
+              <Stack.Screen name="GetStartedWithStore" component={GetStartedWithStore} />
               <Stack.Screen name="MyStore" component={MyStore} />
               <Stack.Screen name="AddProduct" component={AddProduct} />
               <Stack.Screen name="QuickSale" component={QuickSale} />
@@ -88,6 +95,11 @@ const App = () => {
               <Stack.Screen name="StoreDetail" component={StoreDetail} />
               <Stack.Screen name="StoreCreate" component={StoreCreateScreen} />
               <Stack.Screen name="StoreProductDetailScreen" component={StoreProductDetailScreen} />
+              <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+              <Stack.Screen name="ActivityHistory" component={ActivityHistoryScreen} />
+              <Stack.Screen name="Settings" component={SettingsScreen} />
+              <Stack.Screen name="Support" component={SupportScreen} />
+              <Stack.Screen name="About" component={AboutScreen} />
             </Stack.Navigator>
           ) : (
             <Stack.Navigator initialRouteName="RegisterByOTP" headerMode="none">

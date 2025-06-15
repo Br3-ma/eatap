@@ -169,15 +169,6 @@ const AddProduct = ({ navigation, route }) => {
   const submitProduct = async () => {
     if (!validateForm()) return;
 
-    if (!store_id) {
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Store ID is required to add a product',
-      });
-      return;
-    }
-
     setLoading(true);
     try {
       const data = new FormData();
@@ -189,7 +180,7 @@ const AddProduct = ({ navigation, route }) => {
       data.append('types', JSON.stringify(form.types));
       data.append('tags', JSON.stringify(form.tags));
       data.append('variants', JSON.stringify(form.variants));
-      data.append('store_id', store_id);
+      data.append('store_id', form.store_id);
 
       form.images.forEach((image, index) => {
         data.append(`images[${index}]`, {
@@ -230,7 +221,6 @@ const AddProduct = ({ navigation, route }) => {
         images: [],
         videos: [],
         variants: [],
-        store_id: store_id
       });
       setStep(1);
 
@@ -265,86 +255,46 @@ const AddProduct = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#FF6B35', '#FF8C42', '#FFA726']}
-        style={styles.headerGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-      >
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <MaterialCommunityIcons name="arrow-left" size={26} color="#FFFFFF" />
-          </TouchableOpacity>
-
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>Add New Product</Text>
-            <View style={styles.stepIndicator}>
-              <Text style={styles.stepText}>Step {step} of 5</Text>
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: `${(step / 5) * 100}%` }]} />
-              </View>
-            </View>
-          </View>
-        </View>
-      </LinearGradient>
-
-      <ScrollView
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
-        <Animatable.View
-          animation="fadeInUp"
-          duration={800}
-          style={styles.stepContainer}
-        >
-          {renderStep()}
-        </Animatable.View>
-
-        <View style={styles.navigationContainer}>
-          <View style={styles.buttonRow}>
-            {step > 1 && (
-              <TouchableOpacity
-                onPress={prevStep}
-                style={[styles.navButton, styles.prevButton]}
-                disabled={loading}
-              >
-                <MaterialCommunityIcons name="chevron-left" size={20} color="#FF6B35" />
-                <Text style={styles.prevButtonText}>Previous</Text>
-              </TouchableOpacity>
-            )}
-
-            <View style={styles.spacer} />
-
-            {step < 5 ? (
-              <TouchableOpacity
-                onPress={nextStep}
-                style={[styles.navButton, styles.nextButton]}
-                disabled={loading}
-              >
-                <Text style={styles.nextButtonText}>Next</Text>
-                <MaterialCommunityIcons name="chevron-right" size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                onPress={submitProduct}
-                style={[styles.navButton, styles.submitButton]}
-                disabled={loading}
-              >
-                <MaterialCommunityIcons
-                  name={loading ? "loading" : "check-circle"}
-                  size={20}
-                  color="#FFFFFF"
-                />
-                <Text style={styles.submitButtonText}>
-                  {loading ? 'Creating...' : 'Create Product'}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
+      <View style={styles.header}>
+        <IconButton
+          icon="arrow-left"
+          size={24}
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        />
+        <Text style={styles.title}>Add Product</Text>
+        <Text style={styles.subtitle}>Step {step} of 5</Text>
+      </View>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        {renderStep()}
+        <View style={styles.buttons}>
+          {step > 1 && (
+            <IconButton
+              icon="arrow-left"
+              size={24}
+              onPress={prevStep}
+              style={styles.wizardButton}
+              disabled={loading}
+            />
+          )}
+          {step < 5 ? (
+            <IconButton
+              icon="arrow-right"
+              size={24}
+              onPress={nextStep}
+              style={styles.wizardButton}
+              disabled={loading}
+            />
+          ) : (
+            <IconButton
+              icon="check"
+              size={24}
+              onPress={submitProduct}
+              style={[styles.wizardButton, styles.submitButton]}
+              loading={loading}
+              disabled={loading}
+            />
+          )}
         </View>
       </ScrollView>
 
@@ -362,136 +312,43 @@ const AddProduct = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FF6B35',
+    backgroundColor: '#f0f9ff',
   },
-  headerGradient: {
-    paddingTop: 50,
-    paddingBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
+  scroll: {
+    padding: 20,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    padding: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
   },
   backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  titleContainer: {
-    flex: 1,
+    marginRight: 8,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 8,
-    letterSpacing: 0.5,
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+    flex: 1,
   },
-  stepIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  stepText: {
+  subtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginRight: 12,
-    fontWeight: '500',
+    color: '#6B7280',
   },
-  progressBar: {
-    flex: 1,
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 2,
-  },
-  scrollContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  scroll: {
-    paddingTop: 24,
-    paddingBottom: 100,
-  },
-  stepContainer: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 0,
-    borderRadius: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    minHeight: 400,
-  },
-  navigationContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    backgroundColor: '#FFFFFF',
-  },
-  buttonRow: {
+  buttons: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    marginTop: 20,
   },
-  spacer: {
-    flex: 1,
-  },
-  navButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  prevButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#FF6B35',
-  },
-  prevButtonText: {
-    color: '#FF6B35',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  nextButton: {
-    backgroundColor: '#FF6B35',
-  },
-  nextButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginRight: 4,
+  wizardButton: {
+    backgroundColor: '#e5e7eb',
+    marginHorizontal: 8,
   },
   submitButton: {
-    backgroundColor: '#2ECC71',
-    paddingHorizontal: 32,
-  },
-  submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-    marginLeft: 8,
+    backgroundColor: '#059669',
   },
 });
 

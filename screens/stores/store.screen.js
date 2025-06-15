@@ -9,8 +9,33 @@ import MenuGrid from '../../components/my-store-menu';
 import RecentActivity from '../../components/my-store-activity';
 import MyStoreDetails from '../../components/my-store-details';
 
-const MyStore = ({ navigation }) => {
+const MyStore = ({ navigation, route }) => {
     const [storeDetails, setStoreDetails] = useState(null);
+
+    useEffect(() => {
+        const loadStoreDetails = async () => {
+            try {
+                // First check if we have store details in route params
+                if (route.params?.storeDetails) {
+                    setStoreDetails(route.params.storeDetails);
+                    return;
+                }
+
+                // If not, try to get from AsyncStorage
+                const jsonValue = await AsyncStorage.getItem('storeDetails');
+                if (jsonValue) {
+                    const data = JSON.parse(jsonValue);
+                    if (data.status === 'success' && data.data) {
+                        setStoreDetails(data.data);
+                    }
+                }
+            } catch (e) {
+                console.error('Error reading store details:', e);
+            }
+        };
+
+        loadStoreDetails();
+    }, [route.params]);
 
     const [quickActions] = useState([
         { name: 'Add\nProduct', icon: 'plus-circle', color: '#059669', onPress: () => navigation.navigate('AddProduct', { store_id: storeDetails?.id }), type: 'Feather' },
@@ -36,21 +61,9 @@ const MyStore = ({ navigation }) => {
         }
     };
 
-    useEffect(() => {
-        const fetchStoreDetails = async () => {
-            try {
-                const jsonValue = await AsyncStorage.getItem('storeDetails');
-                const storeData = JSON.parse(jsonValue);
-                if (storeData != null) {
-                    setStoreDetails(storeData.data);
-                }
-            } catch (e) {
-                console.log('Error reading store details:', e);
-            }
-        };
-
-        fetchStoreDetails();
-    }, []);
+    if (!storeDetails) {
+        return null; // Or a loading screen
+    }
 
     return (
         <SafeAreaView style={styles.container}>
@@ -58,7 +71,7 @@ const MyStore = ({ navigation }) => {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
                 <PerformanceCard storeDetails={storeDetails} />
                 <QuickActions quickActions={quickActions} renderIcon={renderIcon} />
-                <MyStoreDetails storeDetails={storeDetails} /> {/* Add the new StoreDetailsCard component */}
+                <MyStoreDetails storeDetails={storeDetails} />
                 <MenuGrid menuItems={menuItems} />
                 <RecentActivity storeDetails={storeDetails} />
             </ScrollView>

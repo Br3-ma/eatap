@@ -1,58 +1,19 @@
 // MeScreen.js
-import React, { useContext, useRef, useState, useEffect } from 'react';
+import React, { useContext, useRef, useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, Animated, Dimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import styles from '../../../assets/css/me.css'; // Import styles from a separate file
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import * as Animatable from 'react-native-animatable';
 import { UserContext } from '../../../data/helpers/UserContext';
-
-// Side Menu Component
-const SideMenu = ({ navigation, closeMenu }) => {
-  const menuItems = [
-    { icon: 'home', title: 'Home', screen: 'Home' },
-    { icon: 'store', title: 'My Store', screen: 'MyStore' },
-    { icon: 'account', title: 'Profile', screen: 'Me' },
-    { icon: 'shield-lock', title: 'Security', screen: 'Security' },
-    { icon: 'cog', title: 'Settings', screen: 'Settings' },
-    { icon: 'help-circle', title: 'Help & Support', screen: 'Support' },
-  ];
-
-  return (
-    <View style={styles.sideMenuContainer}>
-      <View style={styles.menuHeader}>
-        <TouchableOpacity onPress={closeMenu} style={styles.closeButton}>
-          <MaterialCommunityIcons name="close" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.menuTitle}>Menu</Text>
-      </View>
-      <View style={styles.menuItems}>
-        {menuItems.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.menuItem}
-            onPress={() => {
-              closeMenu();
-              navigation.navigate(item.screen);
-            }}
-          >
-            <MaterialCommunityIcons name={item.icon} size={24} color="#FF6B6B" />
-            <Text style={styles.menuText}>{item.title}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      <View style={styles.menuFooter}>
-        <TouchableOpacity style={styles.logoutButton}>
-          <MaterialCommunityIcons name="logout" size={24} color="#FF6B6B" />
-          <Text style={styles.logoutText}>Log Out</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
+import SideMenu from '../../../components/profile-sidemenu';
+import styles from '../../../assets/css/me.css';
 
 const MeScreen = ({ navigation }) => {
-  const { userInfo } = useContext(UserContext); // Fetch userInfo from context
+  const { userInfo } = useContext(UserContext);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuSlide = useRef(new Animated.Value(-Dimensions.get('window').width)).current;
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   // Mock data for donation stats and recent activities
   const donationStats = {
@@ -87,13 +48,6 @@ const MeScreen = ({ navigation }) => {
     });
   };
 
-  // Close menu when clicking outside
-  const handleOverlayPress = () => {
-    if (menuOpen) {
-      closeMenu();
-    }
-  };
-
   return (
     <View style={styles.mainContainer}>
       {/* Overlay to close the menu when clicking outside */}
@@ -101,7 +55,7 @@ const MeScreen = ({ navigation }) => {
         <TouchableOpacity
           style={styles.menuOverlay}
           activeOpacity={1}
-          onPress={handleOverlayPress}
+          onPress={closeMenu}
         />
       )}
 
@@ -115,33 +69,64 @@ const MeScreen = ({ navigation }) => {
         <SideMenu navigation={navigation} closeMenu={closeMenu} />
       </Animated.View>
 
-      <ScrollView style={styles.container}>
-        {/* Profile Header */}
-        <View style={styles.header}>
-          <View style={styles.coverPhoto}>
-            <TouchableOpacity style={styles.menuButton} onPress={openMenu}>
-              <MaterialCommunityIcons name="menu" size={24} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.settingsButton}>
-              <MaterialCommunityIcons name="cog" size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.profileSection}>
-            <Image
-              source={require('../../../assets/img/1.png')}
-              style={styles.profilePicture}
-            />
-            <View style={styles.badgeContainer}>
-              <MaterialCommunityIcons name="check-decagram" size={24} color="#FF6B6B" />
+      <Animated.ScrollView
+        style={styles.container}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+      >
+        <Animatable.View animation="fadeInUp" duration={800} style={styles.profileSection}>
+          <View style={styles.profileCard}>
+            <View style={styles.profileHeader}>
+              <TouchableOpacity style={styles.menuButton} onPress={openMenu}>
+                <MaterialCommunityIcons name="menu" size={24} color="#333" />
+              </TouchableOpacity>
+              <View style={styles.profileImageWrapper}>
+                <Image
+                  source={require('../../../assets/img/1.png')}
+                  style={styles.profilePicture}
+                />
+                <View style={styles.badgeContainer}>
+                  <MaterialCommunityIcons name="check-decagram" size={24} color="#FF6B35" />
+                </View>
+              </View>
+              <View style={styles.profileStats}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>47</Text>
+                  <Text style={styles.statLabel}>Donations</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>156</Text>
+                  <Text style={styles.statLabel}>Items</Text>
+                </View>
+                <View style={styles.statDivider} />
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>235</Text>
+                  <Text style={styles.statLabel}>Helped</Text>
+                </View>
+              </View>
             </View>
-            <Text style={styles.profileName}>{userInfo?.user?.name || 'Guest'}</Text>
-            <Text style={styles.profileBadge}>Verified Donor</Text>
-            <Text style={styles.profileBio}>{userInfo?.user?.bio || 'Helping reduce food waste and hunger'}</Text>
+            <View style={styles.profileInfo}>
+              <View style={styles.nameContainer}>
+                <Text style={styles.profileName}>{userInfo?.user?.name || 'Guest'}</Text>
+                <View style={styles.verifiedBadge}>
+                  <MaterialCommunityIcons name="shield-check" size={16} color="#FF6B35" />
+                  <Text style={styles.verifiedText}>Verified Donor</Text>
+                </View>
+              </View>
+              <Text style={styles.profileBio}>{userInfo?.user?.bio || 'Helping reduce food waste and hunger'}</Text>
+              <View style={styles.locationContainer}>
+                <MaterialCommunityIcons name="map-marker" size={16} color="#666" />
+                <Text style={styles.locationText}>{userInfo?.user?.location || 'New York, USA'}</Text>
+              </View>
+            </View>
           </View>
-        </View>
+        </Animatable.View>
 
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
+        <Animatable.View animation="fadeInUp" delay={200} style={styles.quickActions}>
           <TouchableOpacity style={styles.actionButton}>
             <MaterialCommunityIcons name="food-apple" size={24} color="#fff" />
             <Text style={styles.actionText}>Share Food</Text>
@@ -154,10 +139,9 @@ const MeScreen = ({ navigation }) => {
             <MaterialCommunityIcons name="history" size={24} color="#fff" />
             <Text style={styles.actionText}>History</Text>
           </TouchableOpacity>
-        </View>
+        </Animatable.View>
 
-        {/* Stats Section */}
-        <View style={styles.statsContainer}>
+        <Animatable.View animation="fadeInUp" delay={400} style={styles.statsContainer}>
           <View style={styles.statsRow}>
             <StatItem
               value={donationStats.totalDonations}
@@ -182,17 +166,21 @@ const MeScreen = ({ navigation }) => {
               icon="clipboard-list"
             />
           </View>
-        </View>
+        </Animatable.View>
 
-        {/* Recent Activity */}
-        <View style={styles.sectionContainer}>
+        <Animatable.View animation="fadeInUp" delay={600} style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
           {recentActivities.map((activity, index) => (
-            <View key={index} style={styles.activityItem}>
+            <Animatable.View
+              key={index}
+              animation="fadeInRight"
+              delay={index * 100}
+              style={styles.activityItem}
+            >
               <MaterialCommunityIcons
                 name={activity.type === 'donation' ? 'gift' : 'food-apple'}
                 size={24}
-                color="#FF6B6B"
+                color="#FF6B35"
               />
               <View style={styles.activityInfo}>
                 <Text style={styles.activityTitle}>{activity.item}</Text>
@@ -200,12 +188,11 @@ const MeScreen = ({ navigation }) => {
                   {activity.quantity} • {activity.date}
                 </Text>
               </View>
-            </View>
+            </Animatable.View>
           ))}
-        </View>
+        </Animatable.View>
 
-        {/* Contact Information */}
-        <View style={styles.sectionContainer}>
+        <Animatable.View animation="fadeInUp" delay={800} style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Contact Information</Text>
           <DetailItem
             icon="map-marker"
@@ -222,23 +209,23 @@ const MeScreen = ({ navigation }) => {
             label="Phone"
             value={userInfo?.user?.phone || '+1 (555) 123-4567'}
           />
-        </View>
-      </ScrollView>
+        </Animatable.View>
+      </Animated.ScrollView>
     </View>
   );
 };
 
 const StatItem = ({ value, label, icon }) => (
-  <View style={styles.statItem}>
-    <MaterialCommunityIcons name={icon} size={24} color="#FF6B6B" />
+  <Animatable.View animation="pulse" iterationCount="infinite" duration={2000} style={styles.statItem}>
+    <MaterialCommunityIcons name={icon} size={24} color="#FF6B35" />
     <Text style={styles.statValue}>{value}</Text>
     <Text style={styles.statLabel}>{label}</Text>
-  </View>
+  </Animatable.View>
 );
 
 const DetailItem = ({ icon, label, value }) => (
   <View style={styles.detailItem}>
-    <MaterialCommunityIcons name={icon} size={20} color="#FF6B6B" />
+    <MaterialCommunityIcons name={icon} size={20} color="#FF6B35" />
     <View style={styles.detailContent}>
       <Text style={styles.detailLabel}>{label}</Text>
       <Text style={styles.detailValue}>{value}</Text>
@@ -273,61 +260,6 @@ const additionalStyles = StyleSheet.create({
     shadowOffset: { width: 2, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
-  },
-  sideMenuContainer: {
-    flex: 1,
-    padding: 0,
-  },
-  menuHeader: {
-    padding: 20,
-    backgroundColor: '#FF6B6B',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 120,
-    position: 'relative',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    zIndex: 5,
-  },
-  menuTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginTop: 20,
-  },
-  menuItems: {
-    padding: 15,
-    flex: 1,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  menuText: {
-    marginLeft: 15,
-    fontSize: 16,
-    color: '#333',
-  },
-  menuFooter: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logoutText: {
-    marginLeft: 15,
-    fontSize: 16,
-    color: '#FF6B6B',
-    fontWeight: 'bold',
   },
   menuOverlay: {
     position: 'absolute',

@@ -11,7 +11,9 @@ import StoreSearch from './stores/store-catalog.screen';
 import MeScreen from './account/profile/me.screen';
 import SearchScreen from '../components/main-search-modal';
 import MainHeader from '../components/main-header-icons';
-import MyStore from './stores/store.screen';
+import { getUserInfo } from '../utils/userInfo';
+import { API_BASE_URL } from '../confg/conf';
+import StoreListScreen from './stores/store-list.screen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -73,6 +75,30 @@ const TabBarIcon = ({ name, size, color, focused }) => {
   );
 };
 
+const handleStoreNavigation = async (navigation) => {
+  try {
+    const userInfo = await getUserInfo();
+    if (!userInfo) {
+      navigation.navigate('GetStartedWithStore');
+      return;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/stores/user/${userInfo.userId}`);
+    const data = await response.json();
+
+    if (!data.stores || data.stores.length === 0) {
+      navigation.navigate('GetStartedWithStore');
+    } else if (data.stores.length === 1) {
+      navigation.navigate('MyStore', { storeId: data.stores[0].id });
+    } else {
+      navigation.navigate('StoreList', { stores: data.stores });
+    }
+  } catch (error) {
+    console.error('Error fetching stores:', error);
+    navigation.navigate('GetStartedWithStore');
+  }
+};
+
 const MainTabNavigator = () => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
@@ -122,8 +148,16 @@ const MainTabNavigator = () => (
     <Tab.Screen name="Chat" component={HomeScreen} />
     <Tab.Screen name="My Box" component={MyFoodScreen} />
     <Tab.Screen name="Donate" component={BoxScreen} />
-    <Tab.Screen name="Explore" component={StoreSearch} />
-    {/* <Tab.Screen name="Store" component={MyStore} /> */}
+    <Tab.Screen
+      name="Explore"
+      component={StoreSearch}
+      listeners={{
+        tabPress: (e) => {
+          e.preventDefault();
+          handleStoreNavigation(navigation);
+        }
+      }}
+    />
     <Tab.Screen name="You" component={MeScreen} />
   </Tab.Navigator>
 );
@@ -140,6 +174,11 @@ const MainScreen = () => {
         <Stack.Screen
           name="Search"
           component={SearchScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="StoreList"
+          component={StoreListScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
