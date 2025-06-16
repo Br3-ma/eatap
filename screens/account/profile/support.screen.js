@@ -75,7 +75,7 @@ const SupportScreen = ({ navigation }) => {
                             </View>
                             <View style={styles.contactInfo}>
                                 <Text style={styles.contactLabel}>Email</Text>
-                                <Text style={styles.contactValue}>support@eatapp.com</Text>
+                                <Text style={styles.contactValue}>support@eatapplite.com</Text>
                             </View>
                         </TouchableOpacity>
 
@@ -85,7 +85,7 @@ const SupportScreen = ({ navigation }) => {
                             </View>
                             <View style={styles.contactInfo}>
                                 <Text style={styles.contactLabel}>Phone</Text>
-                                <Text style={styles.contactValue}>+1 (555) 123-4567</Text>
+                                <Text style={styles.contactValue}>+260 (775) 214-7755</Text>
                             </View>
                         </TouchableOpacity>
 

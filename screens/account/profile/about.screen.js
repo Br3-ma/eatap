@@ -7,19 +7,19 @@ import { LinearGradient } from 'expo-linear-gradient';
 const teamData = [
     {
         id: '1',
-        name: 'John Doe',
+        name: 'Bremah Nyeleti',
         role: 'Founder & CEO',
         image: require('../../../assets/img/1.png'),
     },
     {
         id: '2',
-        name: 'Jane Smith',
+        name: 'Bremah Nyeleti',
         role: 'Head of Operations',
         image: require('../../../assets/img/1.png'),
     },
     {
         id: '3',
-        name: 'Mike Johnson',
+        name: 'Bremah Nyeleti',
         role: 'Lead Developer',
         image: require('../../../assets/img/1.png'),
     },
@@ -51,10 +51,10 @@ const AboutScreen = ({ navigation }) => {
                         source={require('../../../assets/img/1.png')}
                         style={styles.appLogo}
                     />
-                    <Text style={styles.appName}>EatApp</Text>
+                    <Text style={styles.appName}>EatappLite</Text>
                     <Text style={styles.appVersion}>Version 1.0.0</Text>
                     <Text style={styles.appDescription}>
-                        EatApp is a platform dedicated to reducing food waste and helping those in need by connecting food donors with recipients in a simple and efficient way.
+                    EatappLite is a platform dedicated to reducing food waste and helping those in need by connecting food donors with recipients in a simple and efficient way.
                     </Text>
                 </View>
 
@@ -103,20 +103,20 @@ const AboutScreen = ({ navigation }) => {
                     <Text style={styles.sectionTitle}>Contact Us</Text>
                     <TouchableOpacity style={styles.contactItem}>
                         <MaterialCommunityIcons name="email" size={20} color="#FF6B35" />
-                        <Text style={styles.contactText}>contact@eatapp.com</Text>
+                        <Text style={styles.contactText}>contact@eatapplite.com</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.contactItem}>
                         <MaterialCommunityIcons name="phone" size={20} color="#FF6B35" />
-                        <Text style={styles.contactText}>+1 (555) 123-4567</Text>
+                        <Text style={styles.contactText}>+260 (775) 214-7755</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.contactItem}>
                         <MaterialCommunityIcons name="map-marker" size={20} color="#FF6B35" />
-                        <Text style={styles.contactText}>123 Food Street, City, Country</Text>
+                        <Text style={styles.contactText}>123 Real Street, City, Country</Text>
                     </TouchableOpacity>
                 </View>
 
                 <Text style={styles.copyright}>
-                    © 2024 EatApp. All rights reserved.
+                    © 2024 EatappLite. All rights reserved.
                 </Text>
             </ScrollView>
         </View>
