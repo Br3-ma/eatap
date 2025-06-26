@@ -40,9 +40,17 @@ const SideMenu = ({ navigation, closeMenu }) => {
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/stores/user/${userInfo.userId}`);
+      // Use userInfo.id or userInfo.user.id if userInfo.userId is not present
+      const userId = userInfo.userId || userInfo.id || (userInfo.user && userInfo.user.id);
+      if (!userId) {
+        navigation.navigate('GetStartedWithStore');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/stores/user/${userId}`);
       const data = await response.json();
 
+      console.log('checking user:', JSON.stringify(response, null, 2));
       if (data.status === 'success' && data.is_found === 'true') {
         if (data.stores_count === 0) {
           navigation.navigate('GetStartedWithStore');
