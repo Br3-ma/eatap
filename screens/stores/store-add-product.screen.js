@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Dimensions, ScrollView, Alert, Image, TouchableOpacity } from 'react-native';
-import { TextInput, Button, Text, Chip, Portal, Modal, Tooltip, IconButton } from 'react-native-paper';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { Text } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
 import Toast from 'react-native-toast-message';
 import axios from 'axios';
 import * as Animatable from 'react-native-animatable';
 import { API_BASE_URL } from '../../confg/conf';
-import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import MaskedView from '@react-native-masked-view/masked-view';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import wizard step components
 import Step1BasicInfo from '../../components/product-wizard/step1-basic-info';
@@ -18,20 +18,13 @@ import Step4Variants from '../../components/product-wizard/step4-variants';
 import Step5Review from '../../components/product-wizard/step5-review';
 import VariantModal from '../../components/product-wizard/variant-modal';
 
-const { width } = Dimensions.get('window');
-
-// Mock data for categories, types, and tags
-const MOCK_CATEGORIES = ['Groceries', 'Electronics', 'Clothing', 'Home & Kitchen', 'Beauty', 'Sports', 'Toys', 'Books'];
-const MOCK_TYPES = ['New', 'Used', 'Refurbished', 'Vintage', 'Limited Edition', 'Seasonal'];
-const MOCK_TAGS = ['Popular', 'Sale', 'Featured', 'Best Seller', 'Trending', 'New Arrival', 'Clearance'];
-const MOCK_VARIANT_TYPES = ['Color', 'Size', 'Brand', 'Material', 'Style', 'Pattern', 'Weight', 'Length', 'Width', 'Height'];
-
 const AddProduct = ({ navigation, route }) => {
-  const { store_id } = route.params || {};
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [storeLoading, setStoreLoading] = useState(true);
   const [showVariantModal, setShowVariantModal] = useState(false);
   const [currentVariant, setCurrentVariant] = useState({ name: '', price: '', stock: '', type: '' });
+  const [storeId, setStoreId] = useState(null);
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -43,8 +36,55 @@ const AddProduct = ({ navigation, route }) => {
     images: [],
     videos: [],
     variants: [],
-    store_id: store_id
+    store_id: null
   });
+
+  // Get store ID from AsyncStorage on component mount
+  useEffect(() => {
+    getStoreIdFromStorage();
+  }, []);
+
+  const getStoreIdFromStorage = async () => {
+    try {
+      setStoreLoading(true);
+      const storeDetailsString = await AsyncStorage.getItem('storeDetails');
+      console.log('🔍 Raw storeDetails from AsyncStorage:', storeDetailsString);
+
+      if (storeDetailsString) {
+        const storeDetails = JSON.parse(storeDetailsString);
+        console.log('📦 Parsed store details from AsyncStorage:', storeDetails);
+
+        if (storeDetails && storeDetails.data && storeDetails.data.id) {
+          setStoreId(storeDetails.data.id);
+          setForm(prev => ({ ...prev, store_id: storeDetails.data.id }));
+          console.log('✅ Store ID set to:', storeDetails.data.id);
+        } else {
+          console.log('❌ Store ID not found in storeDetails');
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Store details not found. Please select a store first.',
+          });
+        }
+      } else {
+        console.log('❌ No storeDetails found in AsyncStorage');
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Store details not found. Please select a store first.',
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error getting store details from AsyncStorage:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to load store details.',
+      });
+    } finally {
+      setStoreLoading(false);
+    }
+  };
 
   const nextStep = () => setStep(prev => prev + 1);
   const prevStep = () => setStep(prev => prev - 1);
@@ -131,7 +171,8 @@ const AddProduct = ({ navigation, route }) => {
   };
 
   const validateForm = () => {
-    if (!form.name.trim()) {
+    // Validate product name
+    if (!form.name || !form.name.trim()) {
       Toast.show({
         type: 'error',
         text1: 'Error',
@@ -139,7 +180,9 @@ const AddProduct = ({ navigation, route }) => {
       });
       return false;
     }
-    if (!form.price.trim()) {
+
+    // Validate price
+    if (!form.price || !form.price.trim()) {
       Toast.show({
         type: 'error',
         text1: 'Error',
@@ -147,7 +190,19 @@ const AddProduct = ({ navigation, route }) => {
       });
       return false;
     }
-    if (!form.stock.trim()) {
+
+    const price = parseFloat(form.price);
+    if (isNaN(price) || price <= 0) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please enter a valid price greater than 0',
+      });
+      return false;
+    }
+
+    // Validate stock
+    if (!form.stock || !form.stock.trim()) {
       Toast.show({
         type: 'error',
         text1: 'Error',
@@ -155,7 +210,19 @@ const AddProduct = ({ navigation, route }) => {
       });
       return false;
     }
-    if (form.images.length === 0) {
+
+    const stock = parseInt(form.stock);
+    if (isNaN(stock) || stock < 0) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please enter a valid stock count (0 or greater)',
+      });
+      return false;
+    }
+
+    // Validate images
+    if (!form.images || form.images.length === 0) {
       Toast.show({
         type: 'error',
         text1: 'Error',
@@ -163,55 +230,117 @@ const AddProduct = ({ navigation, route }) => {
       });
       return false;
     }
+
     return true;
   };
 
   const submitProduct = async () => {
-    if (!validateForm()) return;
+    console.log('🚀 submitProduct function called!');
+    console.log('Current form state:', form);
+    console.log('Current step:', step);
+    console.log('Store ID:', storeId);
+    console.log('Store Loading:', storeLoading);
 
-    if (!store_id) {
+    // Check if store is still loading
+    if (storeLoading) {
+      console.log('⏳ Store details still loading...');
       Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Store ID is required to add a product',
+        type: 'info',
+        text1: 'Loading',
+        text2: 'Please wait while we load store details...',
       });
       return;
     }
 
+    if (!validateForm()) {
+      console.log('❌ Form validation failed');
+      return;
+    }
+
+    if (!storeId) {
+      console.log('❌ Store ID is missing');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Store ID is required to add a product. Please select a store first.',
+      });
+      // Try to reload store details
+      await getStoreIdFromStorage();
+      return;
+    }
+
+    // Check if API_BASE_URL is configured
+    if (!API_BASE_URL) {
+      console.log('❌ API_BASE_URL is not configured');
+      Toast.show({
+        type: 'error',
+        text1: 'Configuration Error',
+        text2: 'API base URL is not configured',
+      });
+      return;
+    }
+
+    console.log('✅ Starting product submission...');
     setLoading(true);
+
     try {
       const data = new FormData();
-      data.append('name', form.name);
-      data.append('description', form.description);
-      data.append('price', form.price);
-      data.append('stock', form.stock);
+      data.append('name', form.name.trim());
+      data.append('description', form.description.trim());
+      data.append('price', parseFloat(form.price));
+      data.append('stock', parseInt(form.stock));
       data.append('categories', JSON.stringify(form.categories));
       data.append('types', JSON.stringify(form.types));
       data.append('tags', JSON.stringify(form.tags));
       data.append('variants', JSON.stringify(form.variants));
-      data.append('store_id', store_id);
+      data.append('store_id', storeId);
 
-      form.images.forEach((image, index) => {
-        data.append(`images[${index}]`, {
-          uri: image.uri,
-          name: image.name,
-          type: 'image/jpeg',
+      // Handle images with proper file objects
+      if (form.images.length > 0) {
+        form.images.forEach((image, index) => {
+          const imageFile = {
+            uri: image.uri,
+            name: image.name || `image_${index}.jpg`,
+            type: 'image/jpeg',
+          };
+          data.append(`images`, imageFile);
         });
+      }
+
+      // Handle videos with proper file objects
+      if (form.videos.length > 0) {
+        form.videos.forEach((video, index) => {
+          const videoFile = {
+            uri: video.uri,
+            name: video.name || `video_${index}.mp4`,
+            type: 'video/mp4',
+          };
+          data.append(`videos`, videoFile);
+        });
+      }
+
+      console.log('📤 Submitting product data:', {
+        name: form.name,
+        price: form.price,
+        stock: form.stock,
+        store_id: storeId,
+        imagesCount: form.images.length,
+        videosCount: form.videos.length,
+        apiUrl: `${API_BASE_URL}/products`
       });
 
-      form.videos.forEach((video, index) => {
-        data.append(`videos[${index}]`, {
-          uri: video.uri,
-          name: video.name,
-          type: 'video/mp4',
-        });
-      });
+      console.log('🌐 Making API request to:', `${API_BASE_URL}/products`);
 
       const response = await axios.post(`${API_BASE_URL}/products`, data, {
         headers: {
           'Content-Type': 'multipart/form-data',
+          'Accept': 'application/json',
         },
+        timeout: 30000, // 30 second timeout
       });
+
+      console.log('✅ Product submission successful!');
+      console.log('📥 Response data:', response.data);
 
       Toast.show({
         type: 'success',
@@ -219,6 +348,7 @@ const AddProduct = ({ navigation, route }) => {
         text2: 'Product created successfully!',
       });
 
+      // Reset form
       setForm({
         name: '',
         description: '',
@@ -230,18 +360,57 @@ const AddProduct = ({ navigation, route }) => {
         images: [],
         videos: [],
         variants: [],
-        store_id: store_id
+        store_id: storeId
       });
       setStep(1);
 
+      // Navigate back to store products or store details
+      setTimeout(() => {
+        navigation.goBack();
+      }, 1500);
+
     } catch (error) {
+      console.error('❌ Product submission error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: error.config
+      });
+
+      let errorMessage = 'Could not submit product';
+
+      if (error.response) {
+        // Server responded with error status
+        const status = error.response.status;
+        const data = error.response.data;
+
+        if (status === 404) {
+          errorMessage = 'API endpoint not found. Please check server configuration.';
+        } else if (status === 500) {
+          errorMessage = 'Server error. Please try again later.';
+        } else if (data?.message) {
+          errorMessage = data.message;
+        } else if (data?.error) {
+          errorMessage = data.error;
+        } else {
+          errorMessage = `Server error: ${status}`;
+        }
+      } else if (error.request) {
+        // Network error
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else {
+        // Other error
+        errorMessage = error.message || 'An unexpected error occurred';
+      }
+
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: error.response?.data?.message || 'Could not submit product',
+        text2: errorMessage,
       });
-      console.error('Product submission error:', error);
     } finally {
+      console.log('🏁 Setting loading to false');
       setLoading(false);
     }
   };
@@ -287,6 +456,15 @@ const AddProduct = ({ navigation, route }) => {
                 <View style={[styles.progressFill, { width: `${(step / 5) * 100}%` }]} />
               </View>
             </View>
+            {storeLoading && (
+              <View style={styles.storeLoadingContainer}>
+                <MaterialCommunityIcons name="loading" size={16} color="#FFFFFF" />
+                <Text style={styles.storeLoadingText}>Loading store details...</Text>
+              </View>
+            )}
+            {storeId && (
+              <Text style={styles.storeIdText}>Store ID: {storeId}</Text>
+            )}
           </View>
         </View>
       </LinearGradient>
@@ -332,7 +510,7 @@ const AddProduct = ({ navigation, route }) => {
               <TouchableOpacity
                 onPress={submitProduct}
                 style={[styles.navButton, styles.submitButton]}
-                disabled={loading}
+                disabled={loading || storeLoading || !storeId}
               >
                 <MaterialCommunityIcons
                   name={loading ? "loading" : "check-circle"}
@@ -340,7 +518,9 @@ const AddProduct = ({ navigation, route }) => {
                   color="#FFFFFF"
                 />
                 <Text style={styles.submitButtonText}>
-                  {loading ? 'Creating...' : 'Create Product'}
+                  {loading ? 'Creating...' :
+                    storeLoading ? 'Loading Store...' :
+                      !storeId ? 'No Store Selected' : 'Finish'}
                 </Text>
               </TouchableOpacity>
             )}
@@ -492,6 +672,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginLeft: 8,
+  },
+  storeLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  storeLoadingText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  storeIdText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

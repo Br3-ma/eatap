@@ -1,128 +1,272 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, FlatList, TextInput, Modal } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, FlatList, TextInput, Modal, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Animatable from 'react-native-animatable';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../../confg/conf';
 
-const { width, height } = Dimensions.get('window');
+// Import components
+import ProductDetailsModal from '../../components/product-details-modal';
+import ProductListItem from '../../components/product-list-item';
+import ProductSearchHeader from '../../components/product-search-header';
+
+// Import controllers
+import {
+    getStoreIdFromStorage,
+    fetchProducts,
+    updateProduct,
+    getStatusColor,
+    filterProducts
+} from '../../controllers/productController';
 
 const StoreProducts = ({ navigation }) => {
-    const [products, setProducts] = useState([
-        { id: 1, name: 'Classic T-Shirt', sku: 'TS001', category: 'Apparel', stock: 50, price: 24.99, status: 'In Stock' },
-        { id: 2, name: 'Denim Jeans', sku: 'DN002', category: 'Bottoms', stock: 30, price: 59.99, status: 'Low Stock' },
-        { id: 3, name: 'Leather Jacket', sku: 'JK003', category: 'Outerwear', stock: 15, price: 129.99, status: 'Critical' },
-    ]);
+    const [products, setProducts] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [filteredProducts, setFilteredProducts] = useState(products);
+    const [filteredProducts, setFilteredProducts] = useState([]);
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
 
-    useEffect(() => {
-        const filtered = products.filter(product =>
-            product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            product.sku.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        setFilteredProducts(filtered);
-    }, [searchQuery]);
+    // API and pagination states
+    const [loading, setLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [hasMorePages, setHasMorePages] = useState(true);
+    const [error, setError] = useState(null);
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'In Stock': return '#059669';
-            case 'Low Stock': return '#f97316';
-            case 'Critical': return '#ef4444';
-            default: return '#64748b';
+    // Store ID state
+    const [storeId, setStoreId] = useState(null);
+    const [storeLoading, setStoreLoading] = useState(true);
+
+    // Refs
+    const flatListRef = useRef(null);
+    const searchTimeoutRef = useRef(null);
+
+    // Load store ID from AsyncStorage
+    const loadStoreId = async () => {
+        try {
+            setStoreLoading(true);
+            const id = await getStoreIdFromStorage();
+            setStoreId(id);
+            console.log('✅ Store ID loaded:', id);
+        } catch (error) {
+            console.error('Error loading store:', error);
+            // Don't navigate back, just use fallback
+            setStoreId(24);
+            console.log('🔄 Using fallback store ID: 24');
+        } finally {
+            setStoreLoading(false);
         }
     };
 
+    // Load products from API
+    const loadProducts = async (page = 1, isRefresh = false) => {
+        if (!storeId) {
+            console.log('❌ Store ID not available, skipping fetch');
+            return;
+        }
+
+        try {
+            if (page === 1) {
+                setLoading(true);
+            } else {
+                setLoadingMore(true);
+            }
+
+            setError(null);
+            console.log(`🔄 Fetching products for store ${storeId}, page ${page}`);
+
+            const result = await fetchProducts(storeId, page);
+            console.log(`✅ Fetched ${result.products.length} products`);
+
+            if (page === 1 || isRefresh) {
+                setProducts(result.products);
+            } else {
+                setProducts(prev => [...prev, ...result.products]);
+            }
+
+            setCurrentPage(page);
+            setHasMorePages(result.pagination.has_more_pages);
+
+        } catch (err) {
+            console.error('Error loading products:', err);
+            setError(err.message);
+            Alert.alert('Error', 'Failed to load products. Please try again.');
+        } finally {
+            setLoading(false);
+            setLoadingMore(false);
+            setRefreshing(false);
+        }
+    };
+
+    // Load more products for infinite scroll
+    const loadMoreProducts = () => {
+        if (!loadingMore && hasMorePages && !loading && storeId) {
+            loadProducts(currentPage + 1);
+        }
+    };
+
+    // Refresh products
+    const onRefresh = () => {
+        setRefreshing(true);
+        loadProducts(1, true);
+    };
+
+    // Quick scroll to top
+    const scrollToTop = () => {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    };
+
+    // Handle product selection
     const openProductDetails = (product) => {
         setSelectedProduct(product);
         setIsDetailModalVisible(true);
     };
 
-    const renderProductItem = ({ item }) => (
-        <TouchableOpacity style={styles.productItem} onPress={() => openProductDetails(item)}>
-            <View style={styles.productItemContent}>
-                <View style={[styles.productStatusIndicator, { backgroundColor: getStatusColor(item.status) }]} />
-                <View style={styles.productDetails}>
-                    <Text style={styles.productName}>{item.name}</Text>
-                    <Text style={styles.productSku}>SKU: {item.sku}</Text>
-                    <Text style={styles.productStock}>Stock: {item.stock} - <Text style={{ color: getStatusColor(item.status) }}>{item.status}</Text></Text>
-                </View>
-                <View style={styles.productPriceContainer}>
-                    <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
-                </View>
-            </View>
-        </TouchableOpacity>
-    );
+    // Handle product save
+    const handleProductSave = async (editForm) => {
+        try {
+            await updateProduct(selectedProduct.id, editForm);
+            Alert.alert('Success', 'Product updated successfully!');
 
-    const ProductDetailsModal = () => {
-        if (!selectedProduct) return null;
-        
+            // Refresh the product list to show updated data
+            onRefresh();
+
+        } catch (error) {
+            console.error('Error saving product:', error);
+            Alert.alert('Error', 'Failed to update product. Please try again.');
+        }
+    };
+
+    // Handle search with debouncing
+    useEffect(() => {
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+
+        searchTimeoutRef.current = setTimeout(() => {
+            const filtered = filterProducts(products, searchQuery);
+            setFilteredProducts(filtered);
+        }, 300);
+
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
+            }
+        };
+    }, [searchQuery, products]);
+
+    // Load store ID on component mount
+    useEffect(() => {
+        loadStoreId();
+    }, []);
+
+    // Load products when store ID is available
+    useEffect(() => {
+        if (storeId && !storeLoading) {
+            console.log('🚀 Loading initial products for store:', storeId);
+            loadProducts(1, true);
+        }
+    }, [storeId, storeLoading]);
+
+    // Render loading more indicator
+    const renderLoadingMore = () => {
+        if (!loadingMore) return null;
         return (
-            <Modal animationType="slide" transparent={true} visible={isDetailModalVisible} onRequestClose={() => setIsDetailModalVisible(false)}>
-                <View style={styles.modalOverlay}>
-                    <Animatable.View animation="fadeInUp" style={styles.modalContainer}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{selectedProduct.name}</Text>
-                            <TouchableOpacity onPress={() => setIsDetailModalVisible(false)}>
-                                <Ionicons name="close" size={24} color="#1f2937" />
-                            </TouchableOpacity>
-                        </View>
-                        <View style={styles.modalContent}>
-                            <Text>SKU: {selectedProduct.sku}</Text>
-                            <Text>Category: {selectedProduct.category}</Text>
-                            <Text>Price: ${selectedProduct.price.toFixed(2)}</Text>
-                            <Text>Stock Status: {selectedProduct.status}</Text>
-                        </View>
-                        <TouchableOpacity style={styles.modalActionButton} onPress={() => alert('Edit Product')}>
-                            <Text style={styles.modalActionButtonText}>Edit Product</Text>
-                        </TouchableOpacity>
-                    </Animatable.View>
-                </View>
-            </Modal>
+            <View style={styles.loadingMoreContainer}>
+                <ActivityIndicator size="small" color="#3b82f6" />
+                <Text style={styles.loadingMoreText}>Loading more products...</Text>
+            </View>
         );
     };
 
+    // Render empty state
+    const renderEmptyComponent = () => {
+        if (loading) return null;
+        return (
+            <View style={styles.emptyContainer}>
+                <Ionicons name="cube-outline" size={48} color="#64748b" />
+                <Text style={styles.emptyText}>
+                    {searchQuery ? 'No products found matching your search.' : 'No products available.'}
+                </Text>
+            </View>
+        );
+    };
+
+    // Handle header actions
+    const handleBackPress = () => navigation.goBack();
+    const handleFilterPress = () => Alert.alert('Filter', 'Filter functionality coming soon!');
+    const handleAddPress = () => Alert.alert('Add Product', 'Add product functionality coming soon!');
+
+    if (storeLoading || (loading && products.length === 0)) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <ProductSearchHeader
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    onBackPress={handleBackPress}
+                    onFilterPress={handleFilterPress}
+                    onAddPress={handleAddPress}
+                />
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#3b82f6" />
+                    <Text style={styles.loadingText}>
+                        {storeLoading ? 'Loading store details...' : 'Loading products...'}
+                    </Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
     return (
         <SafeAreaView style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#1f2937" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Store Products</Text>
-                <TouchableOpacity style={styles.headerButton}>
-                    <MaterialCommunityIcons name="filter-outline" size={20} color="#1f2937" />
-                </TouchableOpacity>
-            </View>
+            {/* Header and Search */}
+            <ProductSearchHeader
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onBackPress={handleBackPress}
+                onFilterPress={handleFilterPress}
+                onAddPress={handleAddPress}
+            />
 
-            {/* Search Bar */}
-            <View style={styles.searchContainer}>
-                <Ionicons name="search" size={20} color="#64748b" />
-                <TextInput
-                    placeholder="Search products..."
-                    placeholderTextColor="#64748b"
-                    style={styles.searchInput}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                />
-                <TouchableOpacity style={styles.quickActionButton}>
-                    <MaterialCommunityIcons name="plus" size={20} color="#fff" />
+            {/* Quick Scroll to Top Button */}
+            {products.length > 10 && (
+                <TouchableOpacity style={styles.scrollToTopButton} onPress={scrollToTop}>
+                    <Ionicons name="arrow-up" size={20} color="#fff" />
                 </TouchableOpacity>
-            </View>
+            )}
 
             {/* Product List */}
             <FlatList
-                data={filteredProducts}
-                renderItem={renderProductItem}
+                ref={flatListRef}
+                data={searchQuery ? filteredProducts : products}
+                renderItem={({ item }) => (
+                    <ProductListItem
+                        product={item}
+                        onPress={openProductDetails}
+                        getStatusColor={getStatusColor}
+                    />
+                )}
                 keyExtractor={(item) => item.id.toString()}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.productList}
+                onEndReached={loadMoreProducts}
+                onEndReachedThreshold={0.1}
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                ListFooterComponent={renderLoadingMore}
+                ListEmptyComponent={renderEmptyComponent}
             />
 
             {/* Product Details Modal */}
-            <ProductDetailsModal />
+            <ProductDetailsModal
+                selectedProduct={selectedProduct}
+                isVisible={isDetailModalVisible}
+                onClose={() => setIsDetailModalVisible(false)}
+                onSave={handleProductSave}
+                getStatusColor={getStatusColor}
+            />
         </SafeAreaView>
     );
 };
@@ -132,125 +276,60 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#f8fafc',
     },
-    header: {
-        flexDirection: 'row',
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: '#fff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
     },
-    backButton: {
-        padding: 8,
-        borderRadius: 20,
-        backgroundColor: '#f1f5f9',
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#1f2937',
-    },
-    headerButton: {
-        padding: 8,
-        borderRadius: 20,
-        backgroundColor: '#f1f5f9',
-    },
-    searchContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        borderRadius: 10,
-        paddingHorizontal: 12,
-        marginVertical: 16,
-        marginHorizontal: 16,
-    },
-    searchInput: {
-        flexGrow: 1,
-        height: 50,
+    loadingText: {
+        marginTop: 12,
         fontSize: 16,
-        color:'#1f2937',
+        color: '#64748b',
     },
-    productItem:{
-       backgroundColor:'#fff',
-       borderRadius :10,
-       marginBottom :12,
-       shadowColor:'#000',
-       shadowOffset:{width :0,height :2},
-       shadowOpacity :0.05,
-       shadowRadius :3,
-       elevation :2,
-   },
-   productItemContent:{
-       flexDirection :'row',
-       alignItems:'center',
-       padding :12,
-   },
-   productStatusIndicator:{
-       width :8,
-       height :8,
-       borderRadius :4,
-       marginRight :12,
-   },
-   productDetails:{
-       flex :1,
-   },
-   productName:{
-       fontSize :15,
-       fontWeight :'600',
-       color :'#1f2937',
-       marginBottom :4,
-   },
-   productSku:{
-       fontSize :12,
-       color :'#64748b',
-       marginBottom :4,
-   },
-   productStock:{
-       fontSize :12,
-       color :'#64748b',
-   },
-   productPriceContainer:{
-       alignItems:'flex-end'
-   },
-   productPrice:{
-       fontSize :15,
-       fontWeight :'600',
-       color :'#2563eb'
-   },
-   modalOverlay:{
-      flex :1,
-      backgroundColor :'rgba(0,0,0,0.5)',
-      justifyContent :'flex-end'
-   },
-   modalContainer:{
-      backgroundColor:'#fff',
-      borderTopLeftRadius :20,
-      borderTopRightRadius :20,
-      padding :20
-   },
-   modalHeader:{
-      flexDirection :'row',
-      justifyContent:'space-between',
-      alignItems:'center'
-   },
-   modalTitle:{
-      fontSize :18,
-      fontWeight :'700'
-   },
-   modalContent:{
-      marginBottom :20
-   },
-   modalActionButton:{
-      backgroundColor:'#3b82f6',
-      borderRadius :10,
-      paddingVertical :12
-   },
-   modalActionButtonText:{
-      color:'#fff',
-      textAlign:'center'
-   }
+    loadingMoreContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 16,
+    },
+    loadingMoreText: {
+        marginLeft: 8,
+        fontSize: 14,
+        color: '#64748b',
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 60,
+    },
+    emptyText: {
+        marginTop: 12,
+        fontSize: 16,
+        color: '#64748b',
+        textAlign: 'center',
+    },
+    scrollToTopButton: {
+        position: 'absolute',
+        right: 20,
+        bottom: 100,
+        backgroundColor: '#3b82f6',
+        borderRadius: 25,
+        width: 50,
+        height: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+        zIndex: 1000,
+    },
+    productList: {
+        paddingHorizontal: 16,
+        paddingBottom: 20,
+    },
 });
 
 export default StoreProducts;

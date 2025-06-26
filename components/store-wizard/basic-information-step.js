@@ -78,7 +78,7 @@ const BasicInformationStep = ({ storeDetails, setStoreDetails, errors, setErrors
                 {errors.description}
             </HelperText>
             <HelperText type="info" visible={true}>
-                Describe your store and what makes it unique
+                Describe your store and what makes it unique.
             </HelperText>
         </View>
     );

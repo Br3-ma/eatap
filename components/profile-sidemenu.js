@@ -1,5 +1,5 @@
 // SideMenu.js
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { Text, Avatar, Divider } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -22,6 +22,16 @@ const MenuItem = ({ icon, label, onPress, badge }) => (
 );
 
 const SideMenu = ({ navigation, closeMenu }) => {
+  const [userInfo, setUserInfo] = useState(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const info = await getUserInfo();
+      setUserInfo(info);
+    };
+    fetchUser();
+  }, []);
+
   const handleStoreNavigation = async () => {
     try {
       const userInfo = await getUserInfo();
@@ -79,8 +89,8 @@ const SideMenu = ({ navigation, closeMenu }) => {
             source={require('../assets/img/1.png')}
             style={styles.avatar}
           />
-          <Text style={styles.name}>John Doe</Text>
-          <Text style={styles.email}>john.doe@example.com</Text>
+          <Text style={styles.name}>{userInfo?.fullname || userInfo?.name || 'User'}</Text>
+          <Text style={styles.email}>{userInfo?.email || ' '}</Text>
         </View>
       </LinearGradient>
 

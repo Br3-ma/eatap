@@ -1,8 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { getUserInfo } from '../../utils/userInfo';
+import { useIsFocused } from '@react-navigation/native';
 
 const GetStartedWithStore = ({ navigation }) => {
+    const [userInfo, setUserInfo] = useState(null);
+    const isFocused = useIsFocused();
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const info = await getUserInfo();
+            setUserInfo(info);
+        };
+        if (isFocused) {
+            fetchUser();
+        }
+    }, [isFocused]);
+
     const benefits = [
         {
             icon: 'food-apple',

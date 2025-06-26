@@ -9,6 +9,9 @@ import SearchBar from '../../components/store-search-bar';
 import StoreToolbar from '../../components/store-catalog-toolbar';
 import CategoryItem from '../../components/store-catalog-categories';
 import StoreItem from '../../components/store-catalog-stores';
+import { getUserInfo } from '../../utils/userInfo';
+import { useIsFocused } from '@react-navigation/native';
+import RenderShimmerProductItem from '../../components/render-shimmer';
 const { width } = Dimensions.get('window');
 
 const StoreSearch = ({ navigation }) => {
@@ -21,6 +24,8 @@ const StoreSearch = ({ navigation }) => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [totalStores, setTotalStores] = useState(0);
     const [error, setError] = useState(null);
+    const [userInfo, setUserInfo] = useState(null);
+    const isFocused = useIsFocused();
 
     // Scroll animation states
     const scrollY = useRef(new Animated.Value(0)).current;
@@ -92,6 +97,16 @@ const StoreSearch = ({ navigation }) => {
         setStores([]);
         fetchStores(1, true);
     }, [searchQuery, selectedCategory]);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const info = await getUserInfo();
+            setUserInfo(info);
+        };
+        if (isFocused) {
+            fetchUser();
+        }
+    }, [isFocused]);
 
     // Animation configuration
     const animateElement = (animValue, toValue, duration = 300) => {
@@ -346,31 +361,42 @@ const StoreSearch = ({ navigation }) => {
             </View>
 
             <View style={styles.storeContainer}>
-                <FlatList
-                    data={stores}
-                    renderItem={renderStoreItem}
-                    keyExtractor={(item) => item.id.toString()}
-                    numColumns={2}
-                    contentContainerStyle={[
-                        styles.storeGrid,
-                        stores.length === 0 && styles.storeGridEmpty
-                    ]}
-                    showsVerticalScrollIndicator={false}
-                    onEndReached={handleLoadMore}
-                    onEndReachedThreshold={0.3}
-                    onScroll={handleScroll}
-                    scrollEventThrottle={16}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={isRefreshing}
-                            onRefresh={handleRefresh}
-                            colors={['#007bff']}
-                            tintColor="#007bff"
-                        />
-                    }
-                    ListFooterComponent={renderLoadingFooter}
-                    ListEmptyComponent={!isLoading && stores.length === 0 ? renderEmptyState : null}
-                />
+                {isLoading && stores.length === 0 ? (
+                    // Show shimmer grid while loading
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', padding: 15 }}>
+                        {[...Array(6)].map((_, idx) => (
+                            <View key={idx} style={{ width: '48%', marginBottom: 15 }}>
+                                <RenderShimmerProductItem />
+                            </View>
+                        ))}
+                    </View>
+                ) : (
+                    <FlatList
+                        data={stores}
+                        renderItem={renderStoreItem}
+                        keyExtractor={(item) => item.id.toString()}
+                        numColumns={2}
+                        contentContainerStyle={[
+                            styles.storeGrid,
+                            stores.length === 0 && styles.storeGridEmpty
+                        ]}
+                        showsVerticalScrollIndicator={false}
+                        onEndReached={handleLoadMore}
+                        onEndReachedThreshold={0.3}
+                        onScroll={handleScroll}
+                        scrollEventThrottle={16}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={isRefreshing}
+                                onRefresh={handleRefresh}
+                                colors={['#007bff']}
+                                tintColor="#007bff"
+                            />
+                        }
+                        ListFooterComponent={renderLoadingFooter}
+                        ListEmptyComponent={!isLoading && stores.length === 0 ? renderEmptyState : null}
+                    />
+                )}
             </View>
         </SafeAreaView>
     );

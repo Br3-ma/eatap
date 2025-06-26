@@ -8,6 +8,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { API_BASE_URL } from '../../confg/conf';
+import { getUserInfo } from '../../utils/userInfo';
+import { useIsFocused } from '@react-navigation/native';
 
 // Import step components
 import BasicInformationStep from '../../components/store-wizard/basic-information-step';
@@ -35,6 +37,9 @@ const StoreCreateScreen = ({ navigation }) => {
         userId: null,
     });
 
+    const [showOpeningTimePicker, setShowOpeningTimePicker] = useState(false);
+    const [showClosingTimePicker, setShowClosingTimePicker] = useState(false);
+
     const TOTAL_STEPS = 5;
     const categories = [
         { id: 'groceries', name: 'Groceries', icon: 'shopping-basket' },
@@ -61,27 +66,24 @@ const StoreCreateScreen = ({ navigation }) => {
     const fadeAnim = useRef(new Animated.Value(1)).current;
     const slideAnim = useRef(new Animated.Value(0)).current;
 
+    const isFocused = useIsFocused();
+
+    // Always mount userInfo in real time from storage
     useEffect(() => {
-        const fetchUserInfo = async () => {
-            try {
-                const storedUserInfo = await AsyncStorage.getItem('userInfo');
-                if (storedUserInfo) {
-                    const parsedUserInfo = JSON.parse(storedUserInfo);
-                    setUserInfo(parsedUserInfo);
-                    setStoreDetails(prev => ({
-                        ...prev,
-                        userId: parsedUserInfo.user.id || parsedUserInfo.user._id
-                    }));
-                } else {
-                    Alert.alert('Error', 'Unable to retrieve user information.');
-                }
-            } catch (error) {
-                console.error('Error fetching user info:', error);
-                Alert.alert('Error', 'Failed to fetch user information.');
+        const fetchUser = async () => {
+            const info = await getUserInfo();
+            setUserInfo(info);
+            if (info && info.user) {
+                setStoreDetails(prev => ({
+                    ...prev,
+                    userId: info.user.id || info.user._id,
+                    email: info.user.email || prev.email,
+                    phone: info.user.phone || prev.phone,
+                }));
             }
         };
-        fetchUserInfo();
-    }, []);
+        fetchUser();
+    }, [isFocused]);
 
     const pickImage = async (type) => {
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -215,6 +217,10 @@ const StoreCreateScreen = ({ navigation }) => {
     };
 
     const handleNext = async () => {
+        // Always fetch latest user info before proceeding
+        const latestUserInfo = await getUserInfo();
+        setUserInfo(latestUserInfo);
+        console.log('User ID creating store is:', latestUserInfo);
         if (!validateStep(currentStep)) {
             Alert.alert('Validation Error', 'Please fill in all required fields correctly');
             return;
@@ -222,34 +228,20 @@ const StoreCreateScreen = ({ navigation }) => {
 
         if (currentStep === TOTAL_STEPS) {
             try {
-                // Get user info directly from AsyncStorage
-                const storedUserInfo = await AsyncStorage.getItem('userInfo');
-                console.log('Raw userInfo from storage:', storedUserInfo);
-
-                if (!storedUserInfo) {
+                if (!latestUserInfo) {
                     Alert.alert('Error', 'User information is missing. Please try again.');
                     return;
                 }
-
-                const parsedUserInfo = JSON.parse(storedUserInfo);
-                console.log('Parsed userInfo:', parsedUserInfo);
-                console.log('User object:', parsedUserInfo.user);
-
-                const userId = parsedUserInfo.user.id || parsedUserInfo.user._id;
-                console.log('Extracted userId:', userId);
-
+                const userId = latestUserInfo.id;
                 if (!userId) {
                     Alert.alert('Error', 'User ID is missing. Please try again.');
                     return;
                 }
-
                 // Create payload with user_id
                 const payload = {
                     ...storeDetails,
                     userId: userId
                 };
-                console.log('Final payload with userId:', payload);
-
                 const response = await fetch(`${API_BASE_URL}/stores`, {
                     method: 'POST',
                     headers: {
@@ -257,14 +249,16 @@ const StoreCreateScreen = ({ navigation }) => {
                     },
                     body: JSON.stringify(payload),
                 });
-
                 const data = await response.json();
-                console.log('API Response:', data);
-
                 if (response.ok) {
                     await AsyncStorage.setItem('storeDetails', JSON.stringify(data));
                     Alert.alert('Success', 'Store created successfully!');
-                    navigation.navigate('MyStore');
+                    // Pass storeId and storeDetails to MyStore
+                    const storeData = data.data || data;
+                    navigation.navigate('MyStore', {
+                        storeId: storeData.id,
+                        storeDetails: storeData
+                    });
                 } else {
                     Alert.alert('Error', data.message || 'Failed to create store.');
                 }
@@ -300,6 +294,30 @@ const StoreCreateScreen = ({ navigation }) => {
         </View>
     );
 
+    const handleTimeChange = (event, selectedTime, type) => {
+        if (type === 'opening') {
+            setShowOpeningTimePicker(false);
+            if (selectedTime) {
+                const hours = selectedTime.getHours().toString().padStart(2, '0');
+                const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+                setStoreDetails(prev => ({
+                    ...prev,
+                    businessHours: { ...prev.businessHours, opening: `${hours}:${minutes}` }
+                }));
+            }
+        } else if (type === 'closing') {
+            setShowClosingTimePicker(false);
+            if (selectedTime) {
+                const hours = selectedTime.getHours().toString().padStart(2, '0');
+                const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+                setStoreDetails(prev => ({
+                    ...prev,
+                    businessHours: { ...prev.businessHours, closing: `${hours}:${minutes}` }
+                }));
+            }
+        }
+    };
+
     const renderStepContent = () => {
         const content = (() => {
             switch (currentStep) {
@@ -330,6 +348,11 @@ const StoreCreateScreen = ({ navigation }) => {
                             setStoreDetails={setStoreDetails}
                             errors={errors}
                             setErrors={setErrors}
+                            showOpeningTimePicker={showOpeningTimePicker}
+                            setShowOpeningTimePicker={setShowOpeningTimePicker}
+                            showClosingTimePicker={showClosingTimePicker}
+                            setShowClosingTimePicker={setShowClosingTimePicker}
+                            handleTimeChange={handleTimeChange}
                         />
                     );
                 case 4:
@@ -449,11 +472,17 @@ const styles = StyleSheet.create({
         height: 2,
     },
     footer: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: -50,
         flexDirection: 'row',
         justifyContent: 'space-between',
         padding: 20,
-        paddingBottom: 30,
+        paddingBottom: 40,
         backgroundColor: 'transparent',
+        minHeight: 90,
+        zIndex: 10,
     },
     button: {
         flex: 1,

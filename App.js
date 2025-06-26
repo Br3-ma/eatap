@@ -8,7 +8,7 @@ import axios from 'axios';
 import { PaperProvider } from 'react-native-paper';
 
 // Screens
-import RegisterByOTPScreen from './screens/auth/otp-register.screen';
+import RegisterByOTPScreen from './screens/auth/otp-signin.screen';
 import OverviewScreen from './screens/onboarding/overview.screen';
 import ContactsPermissions from './screens/onboarding/permissions.screen';
 import SplashScreen from './screens/splash.screen';
@@ -49,19 +49,35 @@ const App = () => {
     try {
       const userInfoString = await AsyncStorage.getItem('userInfo');
       const userInfo = userInfoString ? JSON.parse(userInfoString) : null;
-      const phoneNumber = userInfo ? userInfo.user.phone : '0';
+
+      // Check if user info exists and has required fields
+      if (!userInfo || !userInfo.isAuthenticated) {
+        console.log('No authenticated user found');
+        setAuthenticated(false);
+        setShowSplashScreen(false);
+        return;
+      }
+
+      // Get phone number from the correct path in user data
+      const phoneNumber = userInfo.phone || userInfo.phoneNumber || '0';
+
+      console.log('Checking authentication for phone:', phoneNumber);
 
       const response = await axios.post(`${API_BASE_URL}/connectx`, {
         withCredentials: false,
         phone: phoneNumber,
       });
 
+      console.log('Authentication response:', response.data);
       setAuthenticated(response.data.status);
     } catch (error) {
       console.error('Authentication check failed:', error);
+      // Don't set authenticated to false on network errors, 
+      // let the user try to authenticate again
       setAuthenticated(false);
+    } finally {
+      setShowSplashScreen(false);
     }
-    setShowSplashScreen(false);
   };
 
   if (showSplashScreen) {
@@ -79,7 +95,7 @@ const App = () => {
       <UserProvider>
         <NavigationContainer>
           {authenticated ? (
-            <Stack.Navigator initialRouteName="Main" headerMode="none">
+            <Stack.Navigator initialRouteName="Main" screenOptions={{ headerShown: false }}>
               <Stack.Screen name="Main" component={MainScreen} />
               <Stack.Screen name="Cart" component={CartScreen} />
               <Stack.Screen name="ProductDetails" component={ProductDetails} />
@@ -102,7 +118,7 @@ const App = () => {
               <Stack.Screen name="About" component={AboutScreen} />
             </Stack.Navigator>
           ) : (
-            <Stack.Navigator initialRouteName="RegisterByOTP" headerMode="none">
+            <Stack.Navigator initialRouteName="RegisterByOTP" screenOptions={{ headerShown: false }}>
               <Stack.Screen name="RegisterByOTP" component={RegisterByOTPScreen} />
               <Stack.Screen name="Overview" component={OverviewScreen} />
               <Stack.Screen name="ContactsPermissions" component={ContactsPermissions} />

@@ -18,6 +18,9 @@ import RenderProductItem from '../components/render-product-item';
 import FeaturedStoresCarousel from '../components/featured-stores-slider';
 import featuredStores from '../data/models/FeaturedStoresModel';
 import styles from '../assets/css/home.css';
+import { getUserInfo } from '../utils/userInfo';
+import { useIsFocused } from '@react-navigation/native';
+import DonationShimmerEffect from '../components/shimmer-donations';
 
 const HomeScreen = ({ navigation }) => {
   const [products, setProducts] = useState([]);
@@ -25,33 +28,35 @@ const HomeScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const scrollY = useRef(new Animated.Value(0)).current;
+  const [userInfo, setUserInfo] = useState(null);
+  const isFocused = useIsFocused();
 
   const categories = [
-    { 
+    {
       id: 'all',
       name: 'All',
       icon: 'apps',
       gradient: ['#FF6B6B', '#FF8E8E']
     },
-    { 
+    {
       id: 'groceries',
       name: 'Groceries',
       icon: 'food-apple',
       gradient: ['#4ECDC4', '#45B7D1']
     },
-    { 
+    {
       id: 'pharmacy',
       name: 'Pharmacy',
       icon: 'medical-bag',
       gradient: ['#96CEB4', '#FFEEAD']
     },
-    { 
+    {
       id: 'restaurants',
       name: 'Restaurants',
       icon: 'silverware-fork-knife',
       gradient: ['#FF8C94', '#FFB2B2']
     },
-    { 
+    {
       id: 'convenience',
       name: 'Convenience',
       icon: 'store',
@@ -79,6 +84,16 @@ const HomeScreen = ({ navigation }) => {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const info = await getUserInfo();
+      setUserInfo(info);
+    };
+    if (isFocused) {
+      fetchUser();
+    }
+  }, [isFocused]);
 
   const loadData = async () => {
     try {
@@ -117,7 +132,9 @@ const HomeScreen = ({ navigation }) => {
   const renderCategoryItem = ({ item }) => (
     <TouchableOpacity
       key={item.id}
-      onPress={() => setSelectedCategory(item.name)}
+      onPress={() => {
+        navigation.navigate('Explore', { category: item.name });
+      }}
       style={[
         styles.categoryButton,
         selectedCategory === item.name && styles.selectedCategory
@@ -158,40 +175,66 @@ const HomeScreen = ({ navigation }) => {
       >
         {/* Feature stores carousel slider Section */}
         <View style={styles.welcomeSection}>
-          <FeaturedStoresCarousel stores={featuredStores} />
+          {loading ? (
+            <View style={{ height: 120, justifyContent: 'center' }}>
+              <DonationShimmerEffect />
+            </View>
+          ) : (
+            <FeaturedStoresCarousel stores={featuredStores} />
+          )}
         </View>
 
         {/* Featured Section */}
         <View style={styles.featuredSection}>
           <Text style={styles.sectionTitle}>Featured</Text>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={featuredItems}
-            renderItem={renderFeaturedItem}
-            keyExtractor={item => item.id}
-            contentContainerStyle={styles.featuredList}
-          />
+          {loading ? (
+            <View style={{ flexDirection: 'row' }}>
+              {[1, 2].map((_, idx) => (
+                <View key={idx} style={{ width: 180, marginRight: 16 }}>
+                  <DonationShimmerEffect />
+                </View>
+              ))}
+            </View>
+          ) : (
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={featuredItems}
+              renderItem={renderFeaturedItem}
+              keyExtractor={item => item.id}
+              contentContainerStyle={styles.featuredList}
+            />
+          )}
         </View>
 
         {/* Categories */}
         <View style={styles.categoriesSection}>
           <Text style={styles.sectionTitle}>Categories</Text>
-          <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={categories}
-            renderItem={renderCategoryItem}
-            keyExtractor={item => item.id}
-            contentContainerStyle={styles.categoriesContainer}
-          />
+          {loading ? (
+            <View style={{ flexDirection: 'row' }}>
+              {[1, 2, 3, 4].map((_, idx) => (
+                <View key={idx} style={{ width: 80, marginRight: 12 }}>
+                  <DonationShimmerEffect />
+                </View>
+              ))}
+            </View>
+          ) : (
+            <FlatList
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              data={categories}
+              renderItem={renderCategoryItem}
+              keyExtractor={item => item.id}
+              contentContainerStyle={styles.categoriesContainer}
+            />
+          )}
         </View>
 
         {/* Products Grid */}
         <View style={styles.productsSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Popular Now</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.viewAllButton}
               onPress={() => navigation.navigate('AllProducts')}
             >
@@ -204,7 +247,11 @@ const HomeScreen = ({ navigation }) => {
             <FlatList
               data={[1, 2, 3, 4]}
               numColumns={2}
-              renderItem={() => <RenderShimmerProductItem />}
+              renderItem={() => (
+                <View style={{ flex: 1, margin: 8 }}>
+                  <DonationShimmerEffect />
+                </View>
+              )}
               keyExtractor={(item, index) => index.toString()}
               contentContainerStyle={styles.productGrid}
             />
@@ -216,7 +263,7 @@ const HomeScreen = ({ navigation }) => {
                 <RenderProductItem
                   item={item}
                   navigation={navigation}
-                  onPress={() => navigation.navigate('ProductDetails', { item })}
+                  userInfo={userInfo}
                 />
               )}
               keyExtractor={item => item.id}

@@ -1,13 +1,26 @@
 // MyFoodScreen.js
-import React, { useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { UserContext } from '../../../data/helpers/UserContext'; // Import UserContext
+import { getUserInfo } from '../../../utils/userInfo';
+import { useIsFocused } from '@react-navigation/native';
 import styles from '../../../assets/css/myfood.css'; // Import styles from the separate file
+import DonationShimmerEffect from '../../../components/shimmer-donations';
 
 const MyFoodScreen = () => {
-  const { userInfo } = useContext(UserContext); // Fetch userInfo from context
+  const [userInfo, setUserInfo] = useState(null);
+  const isFocused = useIsFocused();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const info = await getUserInfo();
+      setUserInfo(info);
+    };
+    if (isFocused) {
+      fetchUser();
+    }
+  }, [isFocused]);
 
   const renderTransactionIcon = (index) => {
     const icons = [
@@ -45,58 +58,67 @@ const MyFoodScreen = () => {
         </View>
       </LinearGradient>
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {Array.from({ length: 10 }).map((_, index) => (
-          <TouchableOpacity 
-            key={index}
-            style={styles.transactionCard}
-            activeOpacity={0.9}
-          >
-            <LinearGradient
-              colors={['#fff', '#fff']}
-              style={styles.cardGradient}
+        {(!userInfo) ? (
+          // Show shimmer loading skeletons while loading userInfo
+          Array.from({ length: 3 }).map((_, idx) => (
+            <View key={idx} style={styles.transactionCard}>
+              <DonationShimmerEffect />
+            </View>
+          ))
+        ) : (
+          Array.from({ length: 10 }).map((_, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.transactionCard}
+              activeOpacity={0.9}
             >
-              <View style={styles.mainContent}>
-                <Text style={styles.transactionMessage}>
-                  You have received <Text style={styles.highlightText}>Food, Groceries, and Electronics for K390.39 </Text>from
-                  <Text style={styles.highlightText}> {userInfo?.user?.name || 'Guest'}</Text>, please visit each store to collect your items.
-                </Text>
-                
-                <View style={styles.detailsContainer}>
-                  <View style={styles.detailRow}>
-                    <Ionicons name="call-outline" size={16} color="#FF6B6B" />
-                    <Text style={styles.detailText}>{userInfo?.user?.phone || '0772147755'}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Ionicons name="time-outline" size={16} color="#FF6B6B" />
-                    <Text style={styles.detailText}>Expires: 12/31/2026</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Ionicons name="receipt-outline" size={16} color="#FF6B6B" />
-                    <Text style={styles.detailText}>Transaction #3820472</Text>
-                  </View>
-                </View>
-              </View>
+              <LinearGradient
+                colors={['#fff', '#fff']}
+                style={styles.cardGradient}
+              >
+                <View style={styles.mainContent}>
+                  <Text style={styles.transactionMessage}>
+                    You have received <Text style={styles.highlightText}>Food, Groceries, and Electronics for K390.39 </Text>from
+                    <Text style={styles.highlightText}> {userInfo?.user?.name || userInfo?.fullname || userInfo?.name || 'Guest'}</Text>, please visit each store to collect your items.
+                  </Text>
 
-              <View style={styles.cardFooter}>
-                <View style={styles.timestampContainer}>
-                  <MaterialCommunityIcons 
-                    name="clock-outline" 
-                    size={14} 
-                    color="#757575" 
-                  />
-                  <Text style={styles.timestampText}>{formatTimeAgo(index)}</Text>
+                  <View style={styles.detailsContainer}>
+                    <View style={styles.detailRow}>
+                      <Ionicons name="call-outline" size={16} color="#FF6B6B" />
+                      <Text style={styles.detailText}>{userInfo?.user?.phone || userInfo?.phone || '0772147755'}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Ionicons name="time-outline" size={16} color="#FF6B6B" />
+                      <Text style={styles.detailText}>Expires: 12/31/2026</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Ionicons name="receipt-outline" size={16} color="#FF6B6B" />
+                      <Text style={styles.detailText}>Transaction #3820472</Text>
+                    </View>
+                  </View>
                 </View>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Text style={styles.actionButtonText}>View Details</Text>
-                </TouchableOpacity>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-        ))}
+
+                <View style={styles.cardFooter}>
+                  <View style={styles.timestampContainer}>
+                    <MaterialCommunityIcons
+                      name="clock-outline"
+                      size={14}
+                      color="#757575"
+                    />
+                    <Text style={styles.timestampText}>{formatTimeAgo(index)}</Text>
+                  </View>
+                  <TouchableOpacity style={styles.actionButton}>
+                    <Text style={styles.actionButtonText}>View Details</Text>
+                  </TouchableOpacity>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
     </View>
   );

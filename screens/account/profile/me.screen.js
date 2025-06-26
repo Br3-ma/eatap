@@ -1,19 +1,33 @@
 // MeScreen.js
-import React, { useContext, useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, Animated, Dimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as Animatable from 'react-native-animatable';
-import { UserContext } from '../../../data/helpers/UserContext';
+import { getUserInfo } from '../../../utils/userInfo';
+import { useIsFocused } from '@react-navigation/native';
 import SideMenu from '../../../components/profile-sidemenu';
 import styles from '../../../assets/css/me.css';
+import DonationShimmerEffect from '../../../components/shimmer-donations';
 
 const MeScreen = ({ navigation }) => {
-  const { userInfo } = useContext(UserContext);
+  const [userInfo, setUserInfo] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuSlide = useRef(new Animated.Value(-Dimensions.get('window').width)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
+  const isFocused = useIsFocused();
+  const screenWidth = Dimensions.get('window').width;
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const info = await getUserInfo();
+      setUserInfo(info);
+    };
+    if (isFocused) {
+      fetchUser();
+    }
+  }, [isFocused]);
 
   // Mock data for donation stats and recent activities
   const donationStats = {
@@ -58,7 +72,6 @@ const MeScreen = ({ navigation }) => {
           onPress={closeMenu}
         />
       )}
-
       {/* Sliding Side Menu */}
       <Animated.View
         style={[
@@ -69,106 +82,59 @@ const MeScreen = ({ navigation }) => {
         <SideMenu navigation={navigation} closeMenu={closeMenu} />
       </Animated.View>
 
-      <Animated.ScrollView
-        style={styles.container}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-        scrollEventThrottle={16}
-      >
-        <Animatable.View animation="fadeInUp" duration={800} style={styles.profileSection}>
-          <View style={styles.profileCard}>
-            <View style={styles.profileHeader}>
-              <TouchableOpacity style={styles.menuButton} onPress={openMenu}>
-                <MaterialCommunityIcons name="menu" size={24} color="#333" />
-              </TouchableOpacity>
-              <View style={styles.profileImageWrapper}>
-                <Image
-                  source={require('../../../assets/img/1.png')}
-                  style={styles.profilePicture}
-                />
-                <View style={styles.badgeContainer}>
-                  <MaterialCommunityIcons name="check-decagram" size={24} color="#FF6B35" />
-                </View>
-              </View>
-              <View style={styles.profileStats}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>47</Text>
-                  <Text style={styles.statLabel}>Donations</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>156</Text>
-                  <Text style={styles.statLabel}>Items</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>235</Text>
-                  <Text style={styles.statLabel}>Helped</Text>
-                </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+        {/* Profile Header Card */}
+        <Animatable.View animation="fadeInDown" duration={800} style={[styles.profileCard, { marginTop: 32, marginHorizontal: 20, paddingBottom: 0 }]}>
+          <LinearGradient colors={["#FF6B35", "#FFB385"]} style={styles.profileHeader}>
+            <View style={styles.profileImageWrapper}>
+              <Image
+                source={require('../../../assets/img/1.png')}
+                style={styles.profilePicture}
+              />
+              <View style={styles.badgeContainer}>
+                <MaterialCommunityIcons name="check-decagram" size={24} color="#FF6B35" />
               </View>
             </View>
-            <View style={styles.profileInfo}>
-              <View style={styles.nameContainer}>
-                <Text style={styles.profileName}>{userInfo?.user?.name || 'Guest'}</Text>
-                <View style={styles.verifiedBadge}>
-                  <MaterialCommunityIcons name="shield-check" size={16} color="#FF6B35" />
-                  <Text style={styles.verifiedText}>Verified Donor</Text>
-                </View>
-              </View>
-              <Text style={styles.profileBio}>{userInfo?.user?.bio || 'Helping reduce food waste and hunger'}</Text>
-              <View style={styles.locationContainer}>
-                <MaterialCommunityIcons name="map-marker" size={16} color="#666" />
-                <Text style={styles.locationText}>{userInfo?.user?.location || 'New York, USA'}</Text>
-              </View>
+            <Text style={[styles.profileName, { color: '#fff', marginBottom: 4 }]}>{userInfo?.user?.name || userInfo?.fullname || userInfo?.name || 'Guest'}</Text>
+            <View style={styles.verifiedBadge}>
+              <MaterialCommunityIcons name="shield-check" size={16} color="#FF6B35" />
+              <Text style={styles.verifiedText}>Verified Donor</Text>
             </View>
+            <Text style={[styles.profileBio, { color: '#fff', marginTop: 8 }]}>{userInfo?.user?.bio || userInfo?.bio || 'Helping reduce food waste and hunger'}</Text>
+            <View style={styles.locationContainer}>
+              <MaterialCommunityIcons name="map-marker" size={16} color="#fff" />
+              <Text style={[styles.locationText, { color: '#fff' }]}>{userInfo?.user?.location || userInfo?.location || 'New York, USA'}</Text>
+            </View>
+            {/* Floating Menu Button */}
+            <TouchableOpacity
+              style={[styles.menuButton, { right: 20, top: 20, left: undefined, backgroundColor: 'rgba(255,255,255,0.15)' }]}
+              onPress={openMenu}
+              activeOpacity={0.7}
+            >
+              <MaterialCommunityIcons name="menu" size={28} color="#fff" />
+            </TouchableOpacity>
+          </LinearGradient>
+        </Animatable.View>
+
+        {/* Stats Card */}
+        <Animatable.View animation="fadeInUp" delay={100} style={[styles.sectionContainer, { marginTop: 20 }]}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <StatItem value={donationStats.totalDonations} label="Donations" icon="gift" />
+            <StatItem value={donationStats.foodItemsShared} label="Items Shared" icon="food" />
+            <StatItem value={donationStats.peopleHelped} label="People Helped" icon="account-group" />
+            <StatItem value={donationStats.activeListings} label="Active Listings" icon="clipboard-list" />
           </View>
         </Animatable.View>
 
-        <Animatable.View animation="fadeInUp" delay={200} style={styles.quickActions}>
-          <TouchableOpacity style={styles.actionButton}>
-            <MaterialCommunityIcons name="food-apple" size={24} color="#fff" />
-            <Text style={styles.actionText}>Share Food</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <MaterialCommunityIcons name="hand-heart" size={24} color="#fff" />
-            <Text style={styles.actionText}>Donate</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <MaterialCommunityIcons name="history" size={24} color="#fff" />
-            <Text style={styles.actionText}>History</Text>
-          </TouchableOpacity>
+        {/* Quick Actions Card */}
+        <Animatable.View animation="fadeInUp" delay={200} style={[styles.sectionContainer, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18 }]}>
+          <ActionButton icon="food-apple" label="Share Food" />
+          <ActionButton icon="hand-heart" label="Donate" />
+          <ActionButton icon="history" label="History" />
         </Animatable.View>
 
-        <Animatable.View animation="fadeInUp" delay={400} style={styles.statsContainer}>
-          <View style={styles.statsRow}>
-            <StatItem
-              value={donationStats.totalDonations}
-              label="Donations"
-              icon="gift"
-            />
-            <StatItem
-              value={donationStats.foodItemsShared}
-              label="Items Shared"
-              icon="food"
-            />
-          </View>
-          <View style={styles.statsRow}>
-            <StatItem
-              value={donationStats.peopleHelped}
-              label="People Helped"
-              icon="account-group"
-            />
-            <StatItem
-              value={donationStats.activeListings}
-              label="Active Listings"
-              icon="clipboard-list"
-            />
-          </View>
-        </Animatable.View>
-
-        <Animatable.View animation="fadeInUp" delay={600} style={styles.sectionContainer}>
+        {/* Recent Activity Card */}
+        <Animatable.View animation="fadeInUp" delay={300} style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
           {recentActivities.map((activity, index) => (
             <Animatable.View
@@ -192,35 +158,43 @@ const MeScreen = ({ navigation }) => {
           ))}
         </Animatable.View>
 
-        <Animatable.View animation="fadeInUp" delay={800} style={styles.sectionContainer}>
+        {/* Contact Info Card */}
+        <Animatable.View animation="fadeInUp" delay={400} style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Contact Information</Text>
           <DetailItem
             icon="map-marker"
             label="Location"
-            value={userInfo?.user?.location || 'New York, USA'}
+            value={userInfo?.user?.location || userInfo?.location || 'New York, USA'}
           />
           <DetailItem
             icon="email"
             label="Email"
-            value={userInfo?.user?.email || 'john.doe@example.com'}
+            value={userInfo?.user?.email || userInfo?.email || 'john.doe@example.com'}
           />
           <DetailItem
             icon="phone"
             label="Phone"
-            value={userInfo?.user?.phone || '+1 (555) 123-4567'}
+            value={userInfo?.user?.phone || userInfo?.phone || '+1 (555) 123-4567'}
           />
         </Animatable.View>
-      </Animated.ScrollView>
+      </ScrollView>
     </View>
   );
 };
 
 const StatItem = ({ value, label, icon }) => (
-  <Animatable.View animation="pulse" iterationCount="infinite" duration={2000} style={styles.statItem}>
-    <MaterialCommunityIcons name={icon} size={24} color="#FF6B35" />
-    <Text style={styles.statValue}>{value}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
-  </Animatable.View>
+  <View style={{ alignItems: 'center', flex: 1 }}>
+    <MaterialCommunityIcons name={icon} size={28} color="#FF6B35" style={{ marginBottom: 4 }} />
+    <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>{value}</Text>
+    <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>{label}</Text>
+  </View>
+);
+
+const ActionButton = ({ icon, label }) => (
+  <TouchableOpacity style={styles.actionButton} activeOpacity={0.85}>
+    <MaterialCommunityIcons name={icon} size={24} color="#fff" />
+    <Text style={styles.actionText}>{label}</Text>
+  </TouchableOpacity>
 );
 
 const DetailItem = ({ icon, label, value }) => (
@@ -232,47 +206,5 @@ const DetailItem = ({ icon, label, value }) => (
     </View>
   </View>
 );
-
-// Additional styles needed for the drawer menu
-const additionalStyles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-  },
-  menuButton: {
-    position: 'absolute',
-    left: 15,
-    top: 40,
-    zIndex: 10,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 20,
-    padding: 8,
-  },
-  sideMenu: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '80%',
-    height: '100%',
-    backgroundColor: '#FFFFFF',
-    zIndex: 1000,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-  },
-  menuOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    zIndex: 999,
-  },
-});
-
-// Merge your existing styles with additional styles
-Object.assign(styles, additionalStyles);
 
 export default MeScreen;

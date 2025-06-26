@@ -1,14 +1,26 @@
 // BoxScreen.js
-import React, { useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { UserContext } from '../../../data/helpers/UserContext';
+import { getUserInfo } from '../../../utils/userInfo';
+import { useIsFocused } from '@react-navigation/native';
 import DonationShimmerEffect from '../../../components/shimmer-donations';
 import styles from '../../../assets/css/donations.css'; // Import styles from the separate file
 
 const BoxScreen = () => {
-  const { userInfo } = useContext(UserContext); // Get userInfo from context
+  const [userInfo, setUserInfo] = useState(null);
+  const isFocused = useIsFocused();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const info = await getUserInfo();
+      setUserInfo(info);
+    };
+    if (isFocused) {
+      fetchUser();
+    }
+  }, [isFocused]);
 
   // Simulate loading state
   const isLoading = !userInfo;
@@ -20,8 +32,8 @@ const BoxScreen = () => {
         <Text style={styles.screenTitle}>Recent Donations</Text>
         <View style={styles.boxContainer}>
           {Array.from({ length: 10 }).map((_, index) => (
-            <TouchableOpacity 
-              key={index} 
+            <TouchableOpacity
+              key={index}
               style={styles.boxWrapper}
               activeOpacity={0.95}
             >
@@ -55,7 +67,7 @@ const BoxScreen = () => {
                           <Text style={styles.detailLabel}>Locations:</Text>
                           <Text style={styles.detailValue}>Shoprite, Pick n Pay, A & K Dealers</Text>
                         </View>
-                        
+
                         <View style={styles.detailRow}>
                           <MaterialCommunityIcons name="shopping" style={styles.detailIcon} />
                           <Text style={styles.detailLabel}>Contents:</Text>
@@ -71,7 +83,7 @@ const BoxScreen = () => {
                         <View style={styles.centeredItemDivider} />
                         <View style={styles.centeredItem}>
                           <Text style={styles.centeredItemLabel}>Donor</Text>
-                          <Text style={styles.centeredItemValue}>{userInfo?.user?.name || 'Guest'}</Text>
+                          <Text style={styles.centeredItemValue}>{userInfo?.user?.name || userInfo?.fullname || userInfo?.name || 'Guest'}</Text>
                         </View>
                         <View style={styles.centeredItemDivider} />
                         <View style={styles.centeredItem}>
